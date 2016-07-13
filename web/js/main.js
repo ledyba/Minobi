@@ -17,6 +17,38 @@
     this.width = width;
     /** @type {number} */
     this.height = height;
+    /** @type {Minobi.Page} */
+    this.prev = null;
+    /** @type {Minobi.Page} */
+    this.next = null;
+    /** @type {HTMLImageElement} */
+    this.elem = null;
+  };
+  Minobi.Page.prototype = {
+    /**
+     * @param {HTMLDivElement} container
+     */
+    attach: function(container) {
+      if(!this.elem) {
+        console.error("Null elem.");
+        return;
+      } else if(container === this.elem.parentElement) {
+        return;
+      }
+      container.appendChild(this.elem);
+    },
+    /**
+     * @param {HTMLDivElement} container
+     */
+    detach: function(container) {
+      if(!this.elem) {
+        console.error("Null elem.");
+        return;
+      } else if(container === this.elem.parentElement) {
+        return;
+      }
+      container.removeChild(this.elem);
+    }
   };
 
   /**
@@ -57,9 +89,9 @@
   Minobi.ImageCache.Entry.prototype = {
     load: function() {
       if(!this.element_) {
+        /** @type {HTMLImageElement} */
         this.element_ = document.createElement("img");
-        this.element_.onload = function() {
-        };
+        this.element_.className = 'manga-page';
         this.element_.src = this.page_.url;
       }
     },
@@ -83,103 +115,148 @@
     /** @type {Minobi.Chapter} */
     this.chapter = chapter;
     this.cache_ = new Minobi.ImageCache(this, chapter);
-    this.cluster_ = new Minobi.PageCluster(this);
+    var self = this;
+    this.container_.addEventListener('load', function() {
+      self.render();
+    });
+    /** @type {Minobi.Cursor} */
+    this.cursor_ = new Minobi.Cursor(this.chapter.pages[0]);
   };
   Minobi.Viewer.prototype = {
     /**
      * @param {number|undefined} initPage
      */
     init: function(initPage) {
-      /** @type {number} */
-      this.pageIndex_ = initPage || 0;
-      /** @type {number} */
-      this.x_ = 0;
-      /** @type {number} */
-      this.y_ = 0;
+    },
+    render: function() {
     }
   };
 
   /**
+   * @param {Minobi.Chapter} chapter
+   * @param {Minobi.Page} page
+   * @param {!string} axis
    * @constructor
    */
-  Minobi.Cursor = function() {
-    this.x = 0;
-    this.y = 0;
-    this.vx = 0;
-    this.xy = 0;
+  Minobi.Axis = function(chapter, page, axis) {
+    this.chapter = chapter;
+    this.current = page;
+    this.axis = axis;
+    this.lastMoved = -1;
+    this.pos = 0;
+  };
+  Minobi.Axis.prototype = {
+  };
+
+  /**
+   *
+   * @constructor
+   */
+  Minobi.Potential = function() {
+
+  };
+
+  Minobi.Potential.prototype = {
+    feedback: function() {
+
+    }
   };
 
   /**
    * @param {Minobi.Viewer} viewer
+   * @param {Minobi.Page} page
    * @constructor
    */
-  Minobi.PageCluster = function(viewer) {
-    this.viewer_ = viewer;
-    /** @type {Minobi.PagePosition[]} */
-    this.pages_ = [];
-
-    for(var i=0;i < viewer.chapter.pages.length; i++) {
-      var pos = new Minobi.PagePosition(this, this.viewer_.chapter.pages[i]);
-      this.pages_.push(pos);
-    }
-    var prev = null;
-    for(var i=0;i < this.pages_.length; i++) {
-      var next = i < this.pages_.length-1 ? this.pages_[i+1] : null;
-      this.pages_[i].init(prev, next);
-      prev = this.pages_[i];
-    }
+  Minobi.Cursor = function(viewer, page) {
+    this.viewer = viewer;
+    this.x = 0;
+    this.y = 0;
+    this.vx = 0;
+    this.xy = 0;
+    /** @type {Minobi.Page} */
+    this.page = page;
+    this.lastMoved = -1;
   };
-
-  /**
-  * @param {Minobi.PageCluster} cluster
-  * @param {Minobi.Page} page
-   * @constructor
-   */
-  Minobi.PagePosition = function(cluster, page) {
-    this.cluster_ = cluster;
-    this.page_ = page;
-    /** @type {Minobi.PagePosition} */
-    this.prev = null;
-    /** @type {Minobi.PagePosition} */
-    this.next = null;
-    this.bottom_ = 0;
-    this.left_ = 0;
-  };
-  Minobi.PagePosition.prototype = {
-    /**
-     * @param {Minobi.PagePosition} prev
-     * @param {Minobi.PagePosition} next
-     */
-    init: function(prev, next) {
-      this.prev_ = prev;
-      this.next_ = next;
-      if(prev) {
-        this.bottom_ = prev.bottom_ - this.page_.height;
-        this.left_   = prev.left_   - this.page_.width;
-      } else {
-        this.bottom_ = -this.page_.height;
-        this.left_   = -this.page_.width;
-      }
-    },
+  Minobi.Cursor.prototype = {
     /**
      * @param {Minobi.Cursor} cursor
      */
-    feedback: function(curcor) {
-      var x = cursor.x - this.left_;
-      var y = cursor.y - this.bottom_;
-      if(x < 0 || x > this.page_.width) {
-        console.warn("X-axis out of range");
-        return;
+    feedback: function() {
+      var hwidth = this.page.width/2;
+      var hheight = this.page.height/2;
+      var absX = Math.abs(this.x);
+      var absY = Math.abs(this.y);
+      if(this.lastMoved < 0) {
+        this.lastMoved = new Date().getTime();
       }
-      if(y < 0 || y > this.page_.height) {
-        console.warn("Y-axis out of range");
-        return;
-      }
-      var deltaX = x - this.page_.width/2;
-      var deltaY = y - this.page_.height/2;
+      var now = new Date().getTime();
+      var deltaT = (now - this.lastMoved) / 1000.0;
+      this.lastMoved = now;
+      if(absX > Minobi.Cursor.Epsilon){
+        // Sliding on X-axis
+        this.vx -= Minobi.Cursor.Spring * this.x;
+        var diff = this.vx * deltaT;
+        this.x += diff;
+        if(this.x * (this.x - diff) < 0) {
+          this.vx = 0;
+          this.x = 0;
+        } else if(this.x < -hwidth) {
+          if(this.page.next) {
+            this.page.next.detatch(this.viewer.container_);
+          }
+          this.page = this.page.prev;
+          this.x += hwidth + (this.page.width/2);
+        } else if (this.x > hwidth) {
+          if(this.page.prev) {
+            this.page.prev.detatch(this.viewer.container_);
+          }
+          this.page = this.page.next;
+          this.x -= hwidth + (this.page.width/2);
+        }
 
+        // do not slide on y-axis.
+        this.vy = 0;
+        this.y = 0;
+      } else if(absY > Minobi.Cursor.Epsilon) {
+        // Sliding on X-axis
+        this.vy -= Minobi.Cursor.Spring * this.y;
+        var diff = this.vy * deltaT;
+        this.y += diff;
+        if(this.y * (this.y - diff) < 0) {
+          this.vy = 0;
+          this.y = 0;
+        } else if(this.y < -hheight) {
+          this.page = this.page.prev;
+          this.y += hheight + (this.page.height/2);
+        } else if (this.y > hheight) {
+          this.page = this.page.next;
+          this.y -= hheight + (this.page.height/2);
+        }
+
+        // do not slide on y-axis.
+        this.vx = 0;
+        this.x = 0;
+      } else {
+      }
+    },
+    /**
+     * @param {number} dx
+     * @param {number} dy
+     */
+    move: function(dx, dy) {
+      var absX = Math.abs(this.x);
+      var absY = Math.abs(this.y);
+      if(absX > Minobi.Cursor.Epsilon){
+        this.x += dx;
+        this.vx = 0;
+      } else if(absY > Minobi.Cursor.Epsilon) {
+        this.y += dy;
+        this.vy = 0;
+      }
     }
-  };
+  }
+  Minobi.Cursor.Epsilon = 1;
+  Minobi.Cursor.Spring = 0.1;
 
   /**
    * @param {HTMLDivElement} container
@@ -191,6 +268,10 @@
     for(var i=0;i < chapter.length; i++) {
       var page = new Minobi.Page(chapter[i].path, chapter[i].width, chapter[i].height);
       pages.push(page);
+      if(i > 0) {
+        pages[i-1].next = page;
+        page.prev = pages[i-1];
+      }
     }
     var viewer = new Minobi.Viewer(container, new Minobi.Chapter(pages));
     viewer.init();
