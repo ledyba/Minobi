@@ -142,17 +142,19 @@
   /**
    * @param {HTMLDivElement} container
    * @param {Minobi.Chapter} chapter
+   * @param {number|undefined} initPage
    * @constructor
    */
-  Minobi.Viewer = function(container, chapter) {
+  Minobi.Viewer = function(container, chapter, initPage) {
+    initPage ||= 0;
     /** @type {HTMLDivElement} */
     this.container_ = container;
     this.chapter = chapter;
     this.cache_ = new Minobi.ImageCache(this, chapter);
 
     // Axis
-    this.x = new Minobi.Axis(chapter, chapter.pages[0], 'width');
-    this.y = new Minobi.Axis(chapter, chapter.pages[0], 'height');
+    this.x = new Minobi.Axis(chapter, chapter.pages[initPage], 'width');
+    this.y = new Minobi.Axis(chapter, chapter.pages[initPage], 'height');
 
     //
     this.container_.classList.add('minobi');
@@ -163,14 +165,12 @@
 
   Minobi.Viewer.prototype = {
     /**
-     * @param {number|undefined} initPage
      */
-    init: function(initPage) {
-      initPage ||= 0;
-      this.x.set(this.chapter.pages[initPage]);
-      this.y.set(this.chapter.pages[initPage]);
+    init: function() {
+      this.render();
     },
     render: function() {
+      
     }
   };
 
