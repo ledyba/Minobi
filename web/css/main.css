@@ -2,8 +2,21 @@ body {
   padding: 0px;
   margin: 0px;
 }
-#minobi {
+.minobi {
   width: 100vw;
   height: 100vh;
   background-color: black;
+  position: relative;
+}
+
+.manga-page {
+  position: absolute;
+}
+
+.manga-image-wrap {
+  position: absolute;
+}
+
+.manga-image {
+
 }
