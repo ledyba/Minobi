@@ -221,14 +221,21 @@
 
   /**
    * @param {HTMLDivElement} container
-   * @param {[{path: string, width: number, height:number}]} chapter
+   * @param {[{images: [{path: string, width: number, height:number}], width: number, height:number}]} chapterDef
    */
-  Minobi.init = function(container, chapter) {
+  Minobi.init = function(container, chapterDef) {
     /** @type {[Minobi.Page]} */
     var pages = [];
-    for(var i=0;i < chapter.length; i++) {
-      var image = new Minobi.Image(chapter[i].path, chapter[i].width, chapter[i].height);
-      var page = new Minobi.Page([image], chapter[i].width, chapter[i].height);
+    for(var i=0;i < chapterDef.length; i++) {
+      var pageDef = chapterDef[i];
+      /** @type {[Minobi.Image]} */
+      var images = [];
+      for(var j = 0; j < pageDef.images.length; j++) {
+        var imgDef = pageDef.images[j];
+        var image = new Minobi.Image(imgDef.path, imgDef.width, imgDef.height);
+        images.push(image);
+      }
+      var page = new Minobi.Page(images, pageDef.width, pageDef.height);
       pages.push(page);
       if(i > 0) {
         pages[i-1].next = page;
