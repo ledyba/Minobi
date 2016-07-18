@@ -24,6 +24,13 @@ type Image struct {
 	Height int    `json:"height"`
 }
 
+// Page ...
+type Page struct {
+	Images []Image `json:"images"`
+	Width  int     `json:"width"`
+	Height int     `json:"height"`
+}
+
 func (fi byName) Len() int {
 	return len(fi)
 }
@@ -77,11 +84,17 @@ func main() {
 		}
 	}
 	sort.Sort(byName(files))
-	var imgs []Image
+	var pages []Page
 	for _, info := range files {
-		imgs = append(imgs, analyzeImage(baseDir, path.Join(dirName, info.Name())))
+		img := analyzeImage(baseDir, path.Join(dirName, info.Name()))
+		page := Page{
+			Images: []Image{img},
+			Width:  img.Width,
+			Height: img.Height,
+		}
+		pages = append(pages, page)
 	}
-	bs, err := json.Marshal(imgs)
+	bs, err := json.Marshal(pages)
 	if err != nil {
 		log.Fatal(err)
 	}
