@@ -119,12 +119,7 @@
      * @param {string} url
      */
     setImage_: function(img, url) {
-      if(!this.element_) {
-        /** @type {HTMLImageElement} */
-        this.element_ = document.createElement("img");
-        this.element_.className = 'manga-page';
-        this.element_.src = url;
-      }
+      img.element.src = url;
     },
     /**
      * @param {Minobi.Image} img
@@ -146,7 +141,7 @@
    * @constructor
    */
   Minobi.Viewer = function(container, chapter, initPage) {
-    initPage ||= 0;
+    initPage = initPage || 0;
     /** @type {HTMLDivElement} */
     this.container_ = container;
     this.chapter = chapter;
@@ -155,6 +150,7 @@
     // Axis
     this.x = new Minobi.Axis(chapter, chapter.pages[initPage], 'width');
     this.y = new Minobi.Axis(chapter, chapter.pages[initPage], 'height');
+    this.cache_.enqueue(chapter.pages[initPage]);
 
     //
     this.container_.classList.add('minobi');
@@ -170,7 +166,9 @@
       this.render();
     },
     render: function() {
-      
+      var page = this.x.enabled ? this.x.current : this.y.current;
+      var scale = Math.min();
+      page.attach(this.container_);
     }
   };
 
