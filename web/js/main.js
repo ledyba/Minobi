@@ -148,8 +148,8 @@
     this.cache_ = new Minobi.ImageCache(this, chapter);
 
     // Axis
-    this.x = new Minobi.Axis(chapter, chapter.pages[initPage], 'width');
-    this.y = new Minobi.Axis(chapter, chapter.pages[initPage], 'height');
+    this.axis = this.makeXaxis(initPage);
+    this.potential = new Minobi.StaticPotential(this.axis);
     this.cache_.enqueue(chapter.pages[initPage]);
 
     //
@@ -166,9 +166,21 @@
       this.render();
     },
     render: function() {
-      var page = this.x.enabled ? this.x.current : this.y.current;
+      var page = this.axis.current;
       var scale = Math.min();
       page.attach(this.container_);
+    },
+    /**
+     * @param {number} pageNum
+     */
+    makeXaxis: function(pageNum) {
+      return new Minobi.Axis(this.chapter, chapter.pages[pageNum], 'width');
+    },
+    /**
+     * @param {number} pageNum
+     */
+    makeYaxis: function(pageNum) {
+      return new Minobi.Axis(this.chapter, chapter.pages[pageNum], 'height');
     }
   };
 
@@ -186,6 +198,7 @@
     this.pos = 0
     this.speed = 0;
   };
+
   Minobi.Axis.prototype = {
     reset: function(){
       this.pos = 0;
@@ -204,18 +217,31 @@
   };
 
   /**
-   *
+   * @param {Minobi.Axis} axis
    * @constructor
    */
-  Minobi.Potential = function() {
-
+  Minobi.Potential = function(axis) {
+    this.axis = axis;
   };
 
   Minobi.Potential.prototype = {
     feedback: function() {
-
+      throw new Error("Please implement Potential#feedback");
     }
   };
+
+  /**
+   * @param {Minobi.Axis} axis
+   * @constructor
+   */
+  Minobi.StaticPotential = function(axis) {
+    Minobi.Potential.apply(this);
+  };
+  Minobi.StaticPotential.prototype = Object.create(Minobi.Potential.prototype, {
+    feedback: function() {
+      // Do not move at all.
+    }
+  });
 
   /**
    * @param {HTMLDivElement} container
