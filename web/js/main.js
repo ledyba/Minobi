@@ -164,23 +164,37 @@
      */
     init: function() {
       this.render();
+      this.container_.addEventListener('keyup', function(event) {
+        switch(event.keyCode) {
+        case 38: //up - previous
+          break;
+        case 40: //down - next
+          break;
+        case 37:// left - next
+          break;
+        case 39: //right - previous
+          break;
+        }sus
+      });
     },
     render: function() {
+      var strategy = this.axis.strategy;
       var page = this.axis.current;
-      var scale = Math.min();
+      var scale = strategy(this.container_.clientWidth/page.width, this.container_.clientHeight / page.height);
+      page.elem.style.transform = 'scale('+scale+','+scale+')';
       page.attach(this.container_);
     },
     /**
      * @param {number} pageNum
      */
     makeXaxis: function(pageNum) {
-      return new Minobi.Axis(this.chapter, chapter.pages[pageNum], 'width');
+      return new Minobi.Axis(this.chapter, this.chapter.pages[pageNum], 'width', Math.min);
     },
     /**
      * @param {number} pageNum
      */
     makeYaxis: function(pageNum) {
-      return new Minobi.Axis(this.chapter, chapter.pages[pageNum], 'height');
+      return new Minobi.Axis(this.chapter, this.chapter.pages[pageNum], 'height', Math.max);
     }
   };
 
@@ -188,15 +202,17 @@
    * @param {Minobi.Chapter} chapter
    * @param {Minobi.Page} page
    * @param {!string} axis
+   * @param {!function(number, number)} strategy
    * @constructor
    */
-  Minobi.Axis = function(chapter, page, axis) {
+  Minobi.Axis = function(chapter, page, axis, strategy) {
     this.chapter = chapter;
     this.current = page;
-    this.axis = axis;
     this.lastMoved = -1;
     this.pos = 0
     this.speed = 0;
+    this.axis = axis;
+    this.strategy = strategy;
   };
 
   Minobi.Axis.prototype = {
