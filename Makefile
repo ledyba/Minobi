@@ -1,4 +1,4 @@
-.PHONY: all get clean
+.PHONY: all get test clean
 
 all:
 	mkdir -p .bin
@@ -7,6 +7,9 @@ all:
 
 get:
 	nop
+
+test:
+	python -m SimpleHTTPServer
 
 clean:
 	go clean github.com/ledyba/minobi/...

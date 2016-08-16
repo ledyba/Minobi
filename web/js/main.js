@@ -15,13 +15,23 @@
     this.url = url;
     this.width = width;
     this.height = height;
+    /** @type {Minobi.ImageEntity} */
+    this.entity = null;
 
-    /** @type {!HTMLImageElement} element */
+    /** @type {HTMLImageElement} element */
     this.element = document.createElement('img');
   };
-
+  Minobi.Image.prototype = {
+    clear: function() {
+      if(this.entity) {
+        this.entity.close();
+        this.entity = null;
+        this.element.src = "";
+      }
+    }
+  };
   /**
-   * @param {Minobi.Image[]} images
+   * @param {[Minobi.Image]} images
    * @param {number} width
    * @param {number} height
    * @constructor
@@ -59,7 +69,7 @@
     }
   };
   Minobi.Page.prototype = {
-    attached: function() {
+    get attached() {
       return !this.elem || !!this.elem.parentElement;
     },
     /**
@@ -147,24 +157,34 @@
   Minobi.ImageCache = function(viewer, chapter) {
     this.viewer_ = viewer;
     this.chapter_ = chapter;
+    /** @type {[Image]} */
+    this.cacheList_ = [];
+    /** @type {[Minobi.ImageLoader]} */
+    this.workers_ = [];
+    this.workerIdx_ = 0;
+    for(var i = 0; i < Minobi.ImageCache.MAX_WORKER; i++) {
+      this.workers_.push(new Minobi.ImageLoader(this));
+    }
   };
+  Minobi.ImageCache.MAX_IMAGE = 5;
+  Minobi.ImageCache.MAX_WORKER = 5;
 
   Minobi.ImageCache.prototype = {
     /**
      * @param {Minobi.Page} page
      */
     enqueue: function(page) {
-      // TODO: implement real cache.
       for(var i=0; i < page.images.length; i++) {
-        this.setImage_(page.images[i], page.images[i].url);
+        var img = page.images[i];
+        if(img.entity) {
+          var idx = this.cacheList_.indexOf(img);
+          this.cacheList_.splice(idx, 1);
+          this.cacheList_.push(img);
+        } else {
+          this.workers_[this.workerIdx_].load(img);
+          this.workerIdx_ = (this.workerIdx_ + 1) % Minobi.ImageCache.MAX_WORKER;
+        }
       }
-    },
-    /**
-     * @param {Minobi.Image} img
-     * @param {string} url
-     */
-    setImage_: function(img, url) {
-      img.element.src = url;
     },
     /**
      * @param {Minobi.Image} img
@@ -174,6 +194,68 @@
         img.element.src = "";
         img.element = null;
       }
+    },
+    /**
+     * @param {Minobi.Image} img
+     * @param {Minobi.ImageEntity} ent
+     */
+    onLoaded: function(img, data) {
+      img.element.src = data.url;
+      img.entity = data;
+      this.cacheList_.push(img);
+      if(this.cacheList_.length > Minobi.ImageCache.MAX_IMAGE) {
+        var rm = this.cacheList_.shift();
+        rm.clear();
+      }
+    }
+  };
+  /**
+   * @param {Minobi.ImageCache} cache
+   * @constructor
+   */
+  Minobi.ImageLoader = function(cache) {
+    /** @type {XMLHttpRequest} this.xhr_ */
+    this.xhr_ = null;
+    this.cache_ = cache;
+  };
+  Minobi.ImageLoader.prototype = {
+    /**
+     * @param {Minobi.Image} img
+     */
+    load: function(img) {
+      var self = this;
+      if(this.xhr_) {
+        this.xhr_.abort();
+      }
+      var xhr = new XMLHttpRequest();
+      xhr.responseType = "arraybuffer";
+      xhr.onreadystatechange = function onReadyStateChange() {
+        if (xhr.readyState == 4) {
+          self.xhr_ = null;
+          if(xhr.status == 200) {
+            self.cache_.onLoaded(img, new Minobi.ImageEntity(new Uint8Array(xhr.response)));
+          }else{
+            console.error("We can't load file: ", img.url, xhr);
+          }
+        }
+      };
+      xhr.open('GET', img.url, true);
+      xhr.send(null);
+      this.xhr_ = xhr;
+    }
+  };
+  /**
+   * @param {Uint8Array} data
+   * @constructor
+   */
+  Minobi.ImageEntity = function(data) {
+    /** @type {string} */
+    this.url = URL.createObjectURL(new Blob([data], {type: 'image/webp'}));
+  };
+  Minobi.ImageEntity.prototype = {
+    close: function() {
+      URL.revokeObjectURL(this.url);
+      this.url = null;
     }
   };
 
@@ -229,6 +311,7 @@
           this.render();
         }
       }.bind(this));
+      this.container_.focus();
     },
     render: function() {
       this.axis.render(this);
@@ -249,8 +332,14 @@
       var out =
         page.x + w <= 0 || page.x >= this.container_.clientWidth ||
         page.y + h <= 0 || page.y >= this.container_.clientHeight;
-      if(!out) {
-        page.attach(this.container_);
+      if(out) {
+        if(page.attached) {
+          page.detach(this.container_);
+        }
+      } else {
+        if(!page.attached) {
+          page.attach(this.container_);
+        }
       }
       this.cache_.enqueue(page);
       return !out;
