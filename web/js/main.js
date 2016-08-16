@@ -24,12 +24,13 @@
   Minobi.Image.prototype = {
     clear: function() {
       if(this.entity) {
-        this.entity.close();
+        this.entity.delete();
         this.entity = null;
         this.element.src = "";
       }
     }
   };
+
   /**
    * @param {[Minobi.Image]} images
    * @param {number} width
@@ -177,10 +178,12 @@
       for(var i=0; i < page.images.length; i++) {
         var img = page.images[i];
         if(img.entity) {
+          // already loaded. push to the front of the list.
           var idx = this.cacheList_.indexOf(img);
           this.cacheList_.splice(idx, 1);
           this.cacheList_.push(img);
         } else {
+          // Tell a worker to load the image with Ajax.
           this.workers_[this.workerIdx_].load(img);
           this.workerIdx_ = (this.workerIdx_ + 1) % Minobi.ImageCache.MAX_WORKER;
         }
@@ -197,15 +200,16 @@
     },
     /**
      * @param {Minobi.Image} img
-     * @param {Minobi.ImageEntity} ent
+     * @param {Minobi.ImageEntity} entity
      */
-    onLoaded: function(img, data) {
-      img.element.src = data.url;
-      img.entity = data;
+    onLoaded: function(img, entity) {
+      img.element.src = entity.url;
+      img.entity = entity;
       this.cacheList_.push(img);
+      // Remove the least recent used image.
       if(this.cacheList_.length > Minobi.ImageCache.MAX_IMAGE) {
-        var rm = this.cacheList_.shift();
-        rm.clear();
+        var removedImage = this.cacheList_.shift();
+        removedImage.clear();
       }
     }
   };
@@ -253,7 +257,7 @@
     this.url = URL.createObjectURL(new Blob([data], {type: 'image/webp'}));
   };
   Minobi.ImageEntity.prototype = {
-    close: function() {
+    delete: function() {
       URL.revokeObjectURL(this.url);
       this.url = null;
     }
@@ -284,6 +288,9 @@
     this.container_.addEventListener('load', function() {
       this.render();
     }.bind(this));
+    //window.addEventListener('resize', function() {
+    //  this.render();
+    //}.bind(this));
   };
 
   Minobi.Viewer.prototype = {
@@ -316,33 +323,13 @@
     render: function() {
       this.axis.render(this);
     },
-    /**
-     * @param {Minobi.Page} page
-     * @return {boolean} r
-     */
-    renderPage: function(page, deltaX, deltaY) {
-      var scale = this.axis.calcScale(this.container_, page);
-      var w = page.width * scale;
-      var h = page.height * scale;
-      var offX = (this.container_.clientWidth - w) / 2;
-      var offY = (this.container_.clientHeight - h) / 2;
-      page.scale = scale;
-      page.x = offX + deltaX;
-      page.y = offY + deltaY;
-      var out =
-        page.x + w <= 0 || page.x >= this.container_.clientWidth ||
-        page.y + h <= 0 || page.y >= this.container_.clientHeight;
-      if(out) {
-        if(page.attached) {
-          page.detach(this.container_);
-        }
-      } else {
-        if(!page.attached) {
-          page.attach(this.container_);
-        }
-      }
-      this.cache_.enqueue(page);
-      return !out;
+    /** @returns {HTMLDivElement} container */
+    get container() {
+      return this.container_;
+    },
+    /** @returns {Minobi.ImageCache} cache */
+    get cache() {
+      return this.cache_;
     },
     /**
      * @param {number} pageNum
@@ -364,31 +351,24 @@
    * @constructor
    */
   Minobi.Axis = function(chapter, page) {
-    this.chapter = chapter;
+    this.chapter_ = chapter;
     /** @type {Minobi.Page} */
-    this.current = page;
-    this.lastMoved = -1;
-    this.pos = 0
-    this.speed = 0;
+    this.current_ = page;
+    this.lastMoved_ = -1;
+    this.pos_ = 0
+    this.speed_ = 0;
   };
 
   Minobi.Axis.prototype = {
     reset: function(){
-      this.pos = 0;
-      this.speed = 0;
-    },
-    /**
-     * @param {HTMLDivElement} container
-     * @param {Minobi.Page} page
-     */
-    calcScale: function(container, page) {
-      throw new Error("Please implement Minobi.Axis.calcScale");
+      this.pos_ = 0;
+      this.speed_ = 0;
     },
     /**
      * @param {!Minobi.Page} page
      */
     set: function(page){
-      this.current = page;
+      this.current_ = page;
       this.reset();
     },
     /**
@@ -432,7 +412,7 @@
   };
 
   Minobi.HorizontalAxis.prototype = Object.create(Minobi.Axis.prototype, {
-    calcScale: {
+    calcScale_: {
       /**
        * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
@@ -446,31 +426,63 @@
        * @param {Minobi.Viewer} viewer
        */
       value: function(viewer) {
-        var dx = this.pos;
-        viewer.renderPage(this.current, dx, 0);
-        var offX = dx - (this.current.width * this.current.scale);
-        for(var page = this.current.next; !!page; page = page.next) {
-          if(!viewer.renderPage(page, offX, 0)) {
+        var dx = this.pos_;
+        this.renderPage_(viewer, this.current_, dx);
+        var offX = dx - (this.current_.width * this.current_.scale);
+        for(var page = this.current_.next; !!page; page = page.next) {
+          if(!this.renderPage_(viewer, page, offX, 0)) {
             break;
           }
           offX += -(page.width * page.scale);
         }
-        offX = dx + (this.current.width * this.current.scale);
-        for(var page = this.current.prev; !!page; page = page.prev) {
-          if(!viewer.renderPage(page, offX, 0)) {
+        offX = dx + (this.current_.width * this.current_.scale);
+        for(var page = this.current_.prev; !!page; page = page.prev) {
+          if(!this.renderPage_(viewer, page, offX, 0)) {
             break;
           }
           offX += (page.width * page.scale);
         }
       }
     },
+    renderPage_: {
+      /**
+       * @param {Minobi.Viewer} viewer
+       * @param {Minobi.Page} page
+       * @param {number} deltaX
+       * @return {boolean} r
+       */
+      value: function(viewer, page, deltaX) {
+        var container = viewer.container;
+        var cache = viewer.cache;
+        var scale = this.calcScale_(container, page);
+        var w = page.width * scale;
+        var h = page.height * scale;
+        var offX = (container.clientWidth - w) / 2;
+        var offY = (container.clientHeight - h) / 2;
+        page.scale = scale;
+        page.x = offX + deltaX;
+        page.y = offY;
+        var out = page.x + w <= 0 || page.x >= container.clientWidth;
+        if(out) {
+          if(page.attached) {
+            page.detach(container);
+          }
+        } else {
+          if(!page.attached) {
+            page.attach(container);
+          }
+        }
+        cache.enqueue(page);
+        return !out;
+      },
+    },
     onLeft: {
       /**
        * @return {boolean} reload
        */
       value: function() {
-        if(this.current.next) {
-          this.set(this.current.next);
+        if(this.current_.next) {
+          this.set(this.current_.next);
           return true;
         } else {
           return false;
@@ -482,8 +494,8 @@
        * @return {boolean} reload
        */
       value: function() {
-        if(this.current.prev) {
-          this.set(this.current.prev);
+        if(this.current_.prev) {
+          this.set(this.current_.prev);
           return true;
         } else {
           return false;
@@ -526,8 +538,8 @@
        * @return {boolean} reload
        */
       value: function() {
-        if(this.current.next) {
-          this.set(this.current.next);
+        if(this.current_.next) {
+          this.set(this.current_.next);
           return true;
         } else {
           return false;
@@ -539,8 +551,8 @@
        * @return {boolean} reload
        */
       value: function() {
-        if(this.current.prev) {
-          this.set(this.current.prev);
+        if(this.current_.prev) {
+          this.set(this.current_.prev);
           return true;
         } else {
           return false;
