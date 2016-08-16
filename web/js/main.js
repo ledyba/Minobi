@@ -562,35 +562,6 @@
   });
 
   /**
-   * @param {Minobi.Axis} axis
-   * @constructor
-   */
-  Minobi.Potential = function(axis) {
-    this.axis = axis;
-  };
-
-  Minobi.Potential.prototype = {
-    feedback: function() {
-      throw new Error("Please implement Potential#feedback");
-    }
-  };
-
-  /**
-   * @param {Minobi.Axis} axis
-   * @constructor
-   */
-  Minobi.StaticPotential = function(axis) {
-    Minobi.Potential.call(this);
-  };
-  Minobi.StaticPotential.prototype = Object.create(Minobi.Potential.prototype, {
-    feedback: {
-      value: function() {
-        // Do not move at all.
-      }
-    }
-  });
-
-  /**
    * @param {HTMLDivElement} container
    * @param {[{images: [{path: string, width: number, height:number}], width: number, height:number}]} chapterDef
    */
