@@ -99,46 +99,112 @@
       }
       container.removeChild(this.elem);
     },
-    /**
-     * @param {number} v
-     */
+    /** @param {number} v */
     set scale(scale) {
       this.scale_ = scale;
       this.elem.style.transform = 'scale('+scale+','+scale+')';
     },
-    /**
-     * @return {number} scale
-     */
+    /** @return {number} scale */
     get scale() {
       return this.scale_;
     },
-    /**
-     * @param {number} x
-     */
+    /** @param {number} x */
     set x(x) {
       this.x_ = x;
       this.elem.style.left = x + 'px';
     },
-    /**
-     * @return {number} x
-     */
+    /** @return {number} x */
     get x() {
       return this.x_;
     },
-    /**
-     * @param {number} x
-     */
+    /** @param {number} x */
     set y(y) {
       this.y_ = y;
       this.elem.style.top = y + 'px';
     },
-    /**
-     * @return {number} y
-     */
+    /** @return {number} y */
     get y() {
       return this.y_;
+    },
+    /** @return {number} scaledWidth */
+    get scaledWidth() {
+      return this.scale_ * this.width;
+    },
+    /** @return {number} scaledHeight */
+    get scaledHeight() {
+      return this.scale_ * this.height;
     }
   };
+
+  /**
+   * @param {HTMLDivElement} container
+   * @param {Minobi.Page[]} pages
+   * @constructor
+   */
+   Minobi.Face = function(container, pages) {
+     /** @type {HTMLDivElement} container*/
+     this.container = container;
+     /** @type {Minobi.Page[]} pages */
+     this.pages = pages;
+     /** @type {number} */
+     this.scale_ = 1.0;
+     /** @type {HTMLDivElement} */
+     this.outer_ = document.createElement('div');
+     this.outer_.className = 'manga-face';
+     /** @type {HTMLDivElement} */
+     this.inner = document.createElement('div');
+     this.inner.className = 'manga-face-inner';
+     this.outer_.appendChild(this.inner);
+     /** @type {Minobi.Page} */
+     this.prevPage = pages[0].prev;
+     /** @type {Minobi.Page} */
+     this.nextPage = pages[pages.length-1].next;
+
+     this.relayout();
+   };
+   Minobi.Face.prototype = {
+     /**
+      * @param {HTMLDivElement} container
+      */
+     attach: function(container) {
+       if(!this.elem) {
+         console.error("Null elem.");
+         return;
+       } else if(container === this.elem.parentElement) {
+         console.warn("already attached");
+         return;
+       }
+       container.appendChild(this.elem);
+     },
+     /**
+      * @param {HTMLDivElement} container
+      */
+     detach: function(container) {
+       if(!this.elem) {
+         console.error("Null elem.");
+         return;
+       } else if(container !== this.elem.parentElement) {
+         console.warn("already detached");
+         return;
+       }
+       container.removeChild(this.elem);
+     },
+     /** @param {number} v */
+     set scale(scale) {
+       this.scale_ = scale;
+       this.container.style.transform = 'scale('+scale+','+scale+')';
+     },
+     /** @return {number} scale */
+     get scale() {
+       return this.scale_;
+     },
+     relayout: function() {
+       /* Layout pages */
+       for(var i = 0; i < this.pages.length; i++) {
+         var page = this.pages[i];
+       }
+     }
+   };
 
   /**
    * @param {Minobi.Page[]} pages
@@ -213,6 +279,7 @@
       }
     }
   };
+
   /**
    * @param {Minobi.ImageCache} cache
    * @constructor
@@ -280,7 +347,6 @@
 
     // Axis
     this.axis = this.makeHorizontalAxis(initPage);
-    this.potential = new Minobi.StaticPotential(this.axis);
     this.cache_.enqueue(chapter.pages[initPage]);
 
     //
@@ -352,24 +418,15 @@
    */
   Minobi.Axis = function(chapter, page) {
     this.chapter_ = chapter;
-    /** @type {Minobi.Page} */
-    this.current_ = page;
-    this.lastMoved_ = -1;
-    this.pos_ = 0
-    this.speed_ = 0;
+    this.seek(page);
   };
 
   Minobi.Axis.prototype = {
-    reset: function(){
-      this.pos_ = 0;
-      this.speed_ = 0;
-    },
     /**
      * @param {!Minobi.Page} page
      */
-    set: function(page){
+    seek: function(page){
       this.current_ = page;
-      this.reset();
     },
     /**
      * @param {Minobi.Viewer} viewer
@@ -412,6 +469,53 @@
   };
 
   Minobi.HorizontalAxis.prototype = Object.create(Minobi.Axis.prototype, {
+    seek: {
+      /**
+       * @param {Minobi.Page} page
+       * @override
+       */
+      value: function(page) {
+
+      }
+    },
+    makeFace_: {
+      /**
+       * @param {HTMLDivElement} container
+       * @param {Minobi.Page} page
+       */
+      value: function(container, page) {
+        page.scale = this.calcScale_(container, page);
+        var next = page.next;
+        if(next) {
+          next.scale = this.calcScale_(container, next);
+          if(next.scaledWidth + page.scaledWidth <= container.clientWidth) {
+            // make a face with 2 pages.
+            return new Minobi.Face([page, next]);
+          }
+        }
+        // make a face with a single page.
+        return new Minobi.Face([page]);
+      }
+    },
+    makePrevFace_: {
+      /**
+       * @param {HTMLDivElement} container
+       * @param {Minobi.Page} page
+       */
+      value: function(container, page) {
+        page.scale = this.calcScale_(container, page);
+        var prev = page.prev;
+        if(prev) {
+          prev.scale = this.calcScale_(container, prev);
+          if(prev.scaledWidth + page.scaledWidth <= container.clientWidth) {
+            // make a face with 2 pages.
+            return new Minobi.Face([prev, page]);
+          }
+        }
+        // make a face with a single page.
+        return new Minobi.Face([page]);
+      }
+    },
     calcScale_: {
       /**
        * @param {HTMLDivElement} container
@@ -424,6 +528,7 @@
     render: {
       /**
        * @param {Minobi.Viewer} viewer
+       * @override
        */
       value: function(viewer) {
         var dx = this.pos_;
@@ -479,10 +584,11 @@
     onLeft: {
       /**
        * @return {boolean} reload
+       * @override
        */
       value: function() {
         if(this.current_.next) {
-          this.set(this.current_.next);
+          this.seek(this.current_.next);
           return true;
         } else {
           return false;
@@ -492,10 +598,11 @@
     onRight: {
       /**
        * @return {boolean} reload
+       * @override
        */
       value: function() {
         if(this.current_.prev) {
-          this.set(this.current_.prev);
+          this.seek(this.current_.prev);
           return true;
         } else {
           return false;
@@ -539,7 +646,7 @@
        */
       value: function() {
         if(this.current_.next) {
-          this.set(this.current_.next);
+          this.seek(this.current_.next);
           return true;
         } else {
           return false;
@@ -552,7 +659,7 @@
        */
       value: function() {
         if(this.current_.prev) {
-          this.set(this.current_.prev);
+          this.seek(this.current_.prev);
           return true;
         } else {
           return false;
