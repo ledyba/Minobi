@@ -137,13 +137,10 @@
   };
 
   /**
-   * @param {HTMLDivElement} container
    * @param {Minobi.Page[]} pages
    * @constructor
    */
-   Minobi.Face = function(container, pages) {
-     /** @type {HTMLDivElement} container*/
-     this.container = container;
+   Minobi.Face = function(pages) {
      /** @type {Minobi.Page[]} pages */
      this.pages = pages;
      /** @type {number} */
@@ -160,7 +157,10 @@
      /** @type {Minobi.Page} */
      this.nextPage = pages[pages.length-1].next;
 
-     this.relayout();
+     /** @type {Minobi.Face} */
+     this.next = null;
+     /** @type {Minobi.Face} */
+     this.prev = null;
    };
    Minobi.Face.prototype = {
      /**
@@ -189,16 +189,60 @@
        }
        container.removeChild(this.elem);
      },
-     /** @param {number} v */
+     /** @param {number} scale */
      set scale(scale) {
        this.scale_ = scale;
-       this.container.style.transform = 'scale('+scale+','+scale+')';
+       this.inner.style.transform = 'scale('+scale+','+scale+')';
      },
      /** @return {number} scale */
      get scale() {
        return this.scale_;
      },
-     relayout: function() {
+     /** @param {number} opacity */
+     set opacity(opacity) {
+       this.container.style.opacity = opacity;
+     },
+     /** @type {Minobi.Face} next */
+     linkNext: function(next) {
+       this.next = next;
+       next.prev = this;
+     },
+     /** @type {Minobi.Face} prev */
+     linkPrev: function(prev) {
+       this.prev = prev;
+       prev.next = this;
+     },
+     unlinkNext: function() {
+       next.prev = null;
+       this.next = null;
+     },
+     unlinkPrev: function() {
+       prev.next = null;
+       this.prev = null;
+     },
+     /**
+      * @param {HTMLDivElement} container
+      */
+     layout: function(container) {
+       /* Layout pages */
+       var w = 0;
+       for(var i = 0; i < this.pages.length; i++) {
+         var page = this.pages[i];
+         w += page.scaledWidth;
+       }
+       var offX  = (container.clientWidth - w) / 2;
+       for(var i = 0; i < this.pages.length; i++) {
+         var page = this.pages[i];
+         page.x = offX;
+         page.y = (container.clientHeight - page.scaledHeight) / 2;
+         offX += page.scaledWidth;
+       }
+     },
+     /**
+      * @param {Minobi.ImageCache} cache
+      * @param {HTMLDivElement} container
+      */
+     render: function(cache, container) {
        /* Layout pages */
        for(var i = 0; i < this.pages.length; i++) {
          var page = this.pages[i];
@@ -363,6 +407,7 @@
     /**
      */
     init: function() {
+      this.seek(this.chapter.pages[0]);
       this.render();
       this.container_.addEventListener('keyup', function(event) {
         var reload = false;
@@ -387,7 +432,13 @@
       this.container_.focus();
     },
     render: function() {
-      this.axis.render(this);
+      this.axis.render(this.cache_, this.container_);
+    },
+    /**
+     * @param {Minobi.Page} page
+     */
+    seek: function(page) {
+      this.axis.seek(this.cache_, this.container_, page);
     },
     /** @returns {HTMLDivElement} container */
     get container() {
@@ -397,41 +448,36 @@
     get cache() {
       return this.cache_;
     },
-    /**
-     * @param {number} pageNum
-     */
-    makeHorizontalAxis: function(pageNum) {
-      return new Minobi.HorizontalAxis(this.chapter, this.chapter.pages[pageNum]);
+    makeHorizontalAxis: function() {
+      return new Minobi.HorizontalAxis(this.chapter);
     },
-    /**
-     * @param {number} pageNum
-     */
-    makeVertivalAxis: function(pageNum) {
-      return new Minobi.VerticalAxis(this.chapter, this.chapter.pages[pageNum]);
+    makeVertivalAxis: function() {
+      return new Minobi.VerticalAxis(this.chapter);
     }
   };
 
   /**
    * @param {Minobi.Chapter} chapter
-   * @param {Minobi.Page} page
    * @constructor
    */
-  Minobi.Axis = function(chapter, page) {
+  Minobi.Axis = function(chapter) {
     this.chapter_ = chapter;
-    this.seek(page);
   };
 
   Minobi.Axis.prototype = {
     /**
-     * @param {!Minobi.Page} page
+     * @param {Minobi.ImageCache} cache
+     * @param {HTMLDivElement} container
+     * @param {Minobi.Page} page
      */
-    seek: function(page){
-      this.current_ = page;
+    seek: function(cache, container, page){
+      throw new Error("Please implement Minobi.Axis.seek");
     },
     /**
-     * @param {Minobi.Viewer} viewer
+     * @param {Minobi.ImageCache} cache
+     * @param {HTMLDivElement} container
      */
-    render: function(viewer) {
+    render: function(cache, container) {
       throw new Error("Please implement Minobi.Axis.render");
     },
     /**
@@ -442,40 +488,61 @@
       return false;
     },
     /**
+     * @param {Minobi.Viewer} viewer
      * @return {boolean} reload
      */
     onDown: function(viewer) {
+      return false;
     },
     /**
+     * @param {Minobi.Viewer} viewer
      * @return {boolean} reload
      */
     onLeft: function(viewer) {
+      return false;
     },
     /**
+     * @param {Minobi.Viewer} viewer
      * @return {boolean} reload
      */
     onRight: function(viewer) {
+      return false;
     }
   };
 
   /**
    * @param {Minobi.Chapter} chapter
-   * @param {Minobi.Page} page
    * @extends {Minobi.Axis}
    * @constructor
    */
-  Minobi.HorizontalAxis = function(chapter, page) {
-    Minobi.Axis.call(this, chapter, page);
+  Minobi.HorizontalAxis = function(chapter) {
+    Minobi.Axis.call(chapter);
+    /** @type {Minobi.Face} */
+    this.current_ = null;
+    /** @type {number} */
+    this.pos_ = 0;
+    /** @type {number} */
+    this.speed_ = 0;
   };
 
   Minobi.HorizontalAxis.prototype = Object.create(Minobi.Axis.prototype, {
     seek: {
       /**
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
        * @override
        */
-      value: function(page) {
-
+      value: function(cache, container, page) {
+        this.current_ = this.makeFace_(container, page);
+        if(this.current_.nextPage) {
+          this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
+        }
+        if(this.current_.prevPage) {
+          this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+        }
+        this.pos_ = 0;
+        this.speed_ = 0;
       }
     },
     makeFace_: {
@@ -490,11 +557,15 @@
           next.scale = this.calcScale_(container, next);
           if(next.scaledWidth + page.scaledWidth <= container.clientWidth) {
             // make a face with 2 pages.
-            return new Minobi.Face([page, next]);
+            var face = new Minobi.Face([page, next]);
+            face.layout(container);
+            return face;
           }
         }
         // make a face with a single page.
-        return new Minobi.Face([page]);
+        var face = new Minobi.Face([page]);
+        face.layout(container);
+        return face;
       }
     },
     makePrevFace_: {
@@ -509,11 +580,15 @@
           prev.scale = this.calcScale_(container, prev);
           if(prev.scaledWidth + page.scaledWidth <= container.clientWidth) {
             // make a face with 2 pages.
-            return new Minobi.Face([prev, page]);
+            var face = new Minobi.Face([prev, page]);
+            face.layout(container);
+            return face;
           }
         }
         // make a face with a single page.
-        return new Minobi.Face([page]);
+        var face = new Minobi.Face([page]);
+        face.layout(container);
+        return face;
       }
     },
     calcScale_: {
@@ -527,68 +602,56 @@
     },
     render: {
       /**
-       * @param {Minobi.Viewer} viewer
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
        * @override
        */
-      value: function(viewer) {
-        var dx = this.pos_;
-        this.renderPage_(viewer, this.current_, dx);
-        var offX = dx - (this.current_.width * this.current_.scale);
-        for(var page = this.current_.next; !!page; page = page.next) {
-          if(!this.renderPage_(viewer, page, offX, 0)) {
-            break;
+      value: function(cache, container) {
+        // update faces pagination.
+        if(this.pos_ >= 1) {
+          if(this.current_.nextPage) {
+            this.pos_ -= 1.0;
+            this.current_.prev.detach(container);
+            this.current_.unlinkPrev();
+            this.current_ = this.current_.next;
+            this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
+            this.current_.next.attach(container);
+          } else {
+            this.pos_ = 1.0;
           }
-          offX += -(page.width * page.scale);
+        } else if(this.pos_ <= 0) {
+          if(this.current_.prevPage) {
+            this.pos_ += 1.0;
+            this.current_.next.detach(container);
+            this.current_.unlinkNext();
+            this.current_ = this.current_.prev;
+            this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+            this.current_.prev.attach(container);
+          } else {
+            this.pos_ = 0.0;
+          }
         }
-        offX = dx + (this.current_.width * this.current_.scale);
-        for(var page = this.current_.prev; !!page; page = page.prev) {
-          if(!this.renderPage_(viewer, page, offX, 0)) {
-            break;
-          }
-          offX += (page.width * page.scale);
+
+        // set opacity and scale for animation, then render faces.
+        this.current_.scale = (1 - this.pos_)*0.5 + 0.5;
+        this.current_.render(cache, container);
+        if(this.current_.next) {
+          this.current_.next.x = (this.pos_ - 1) * container.clientWidth;
+          this.current_.next.render(cache, container);
         }
       }
     },
-    renderPage_: {
-      /**
-       * @param {Minobi.Viewer} viewer
-       * @param {Minobi.Page} page
-       * @param {number} deltaX
-       * @return {boolean} r
-       */
-      value: function(viewer, page, deltaX) {
-        var container = viewer.container;
-        var cache = viewer.cache;
-        var scale = this.calcScale_(container, page);
-        var w = page.width * scale;
-        var h = page.height * scale;
-        var offX = (container.clientWidth - w) / 2;
-        var offY = (container.clientHeight - h) / 2;
-        page.scale = scale;
-        page.x = offX + deltaX;
-        page.y = offY;
-        var out = page.x + w <= 0 || page.x >= container.clientWidth;
-        if(out) {
-          if(page.attached) {
-            page.detach(container);
-          }
-        } else {
-          if(!page.attached) {
-            page.attach(container);
-          }
-        }
-        cache.enqueue(page);
-        return !out;
-      },
-    },
     onLeft: {
       /**
+       * @param {Minobi.Viewer} viewer
        * @return {boolean} reload
        * @override
        */
-      value: function() {
+      value: function(viewer) {
+        var cache = viewer.cache;
+        var container = viewer.container;
         if(this.current_.next) {
-          this.seek(this.current_.next);
+          this.seek(cache, container, this.current_.prevPage);
           return true;
         } else {
           return false;
@@ -597,12 +660,15 @@
     },
     onRight: {
       /**
+       * @param {Minobi.Viewer} viewer
        * @return {boolean} reload
        * @override
        */
-      value: function() {
+      value: function(viewer) {
+        var cache = viewer.cache;
+        var container = viewer.container;
         if(this.current_.prev) {
-          this.seek(this.current_.prev);
+          this.seek(cache, container, this.current_.nextPage);
           return true;
         } else {
           return false;
@@ -616,35 +682,37 @@
    * @param {Minobi.Page} page
    * @extends {Minobi.Axis}
    * @constructor
+   * // TODO: 縦の実装
    */
   Minobi.VerticalAxis = function(chapter, page) {
     Minobi.Axis.call(this, chapter, page);
   };
   Minobi.VerticalAxis.prototype = Object.create(Minobi.Axis.prototype, {
-    calcScale: {
+    seek: {
       /**
+       * @param {Minobi.ImageCache} cache
        * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
+       * @override
        */
-        value: function(container, page) {
-        return container.clientWidth / page.width;
+      value: function(cache, container, page) {
       }
     },
     render: {
       /**
-       * @param {Minobi.Viewer} viewer
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
+       * @override
        */
-      value: function(viewer) {
-        //TODO: implement vertical.
-        //基本的にはページの頭がブラウザ上でも頭に来るようにレンダリングすればOK
-        viewer.renderPage(this.current, 0, 0);
+      value: function(cache, container) {
       }
     },
     onDown: {
       /**
+       * @param {Minobi.Viewer} viewer
        * @return {boolean} reload
        */
-      value: function() {
+      value: function(viewer) {
         if(this.current_.next) {
           this.seek(this.current_.next);
           return true;
@@ -655,9 +723,10 @@
     },
     onUp: {
       /**
+       * @param {Minobi.Viewer} viewer
        * @return {boolean} reload
        */
-      value: function() {
+      value: function(viewer) {
         if(this.current_.prev) {
           this.seek(this.current_.prev);
           return true;
