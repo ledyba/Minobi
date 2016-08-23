@@ -161,33 +161,37 @@
      this.next = null;
      /** @type {Minobi.Face} */
      this.prev = null;
+
+     this.x_ = 0;
    };
    Minobi.Face.prototype = {
      /**
       * @param {HTMLDivElement} container
       */
      attach: function(container) {
-       if(!this.elem) {
-         console.error("Null elem.");
-         return;
-       } else if(container === this.elem.parentElement) {
+       if(container === this.outer_.parentElement) {
          console.warn("already attached");
          return;
        }
-       container.appendChild(this.elem);
+       container.appendChild(this.outer_);
+       for(var i = 0; i < this.pages.length; i++) {
+         var page = this.pages[i];
+         page.attach(this.inner);
+       }
      },
      /**
       * @param {HTMLDivElement} container
       */
      detach: function(container) {
-       if(!this.elem) {
-         console.error("Null elem.");
-         return;
-       } else if(container !== this.elem.parentElement) {
+       if(container !== this.outer_.parentElement) {
          console.warn("already detached");
          return;
        }
-       container.removeChild(this.elem);
+       container.removeChild(this.outer_);
+       for(var i = 0; i < this.pages.length; i++) {
+         var page = this.pages[i];
+         page.detach(this.inner);
+       }
      },
      /** @param {number} scale */
      set scale(scale) {
@@ -202,22 +206,40 @@
      set opacity(opacity) {
        this.container.style.opacity = opacity;
      },
+     /** @param {number} x */
+     set x(x) {
+       this.x_ = x;
+       this.outer_.style.left = x + 'px';
+     },
+     /** @return {number} x */
+     get x() {
+       return this.x_;
+     },
+     /** @param {number} x */
+     set y(y) {
+       this.y_ = y;
+       this.outer_.style.top = y + 'px';
+     },
+     /** @return {number} y */
+     get y() {
+       return this.y_;
+     },
      /** @type {Minobi.Face} next */
      linkNext: function(next) {
        this.next = next;
-       next.prev = this;
+       this.next.prev = this;
      },
      /** @type {Minobi.Face} prev */
      linkPrev: function(prev) {
        this.prev = prev;
-       prev.next = this;
+       this.prev.next = this;
      },
      unlinkNext: function() {
-       next.prev = null;
+       this.next.prev = null;
        this.next = null;
      },
      unlinkPrev: function() {
-       prev.next = null;
+       this.prev.next = null;
        this.prev = null;
      },
      /**
@@ -231,7 +253,7 @@
          w += page.scaledWidth;
        }
        var offX  = (container.clientWidth - w) / 2;
-       for(var i = 0; i < this.pages.length; i++) {
+       for(var i = this.pages.length-1; i >= 0; i--) {
          var page = this.pages[i];
          page.x = offX;
          page.y = (container.clientHeight - page.scaledHeight) / 2;
@@ -246,6 +268,7 @@
        /* Layout pages */
        for(var i = 0; i < this.pages.length; i++) {
          var page = this.pages[i];
+         cache.enqueue(page);
        }
      }
    };
@@ -277,7 +300,7 @@
       this.workers_.push(new Minobi.ImageLoader(this));
     }
   };
-  Minobi.ImageCache.MAX_IMAGE = 5;
+  Minobi.ImageCache.MAX_IMAGE = 10;
   Minobi.ImageCache.MAX_WORKER = 5;
 
   Minobi.ImageCache.prototype = {
@@ -407,22 +430,23 @@
     /**
      */
     init: function() {
+      var self = this;
       this.seek(this.chapter.pages[0]);
       this.render();
       this.container_.addEventListener('keyup', function(event) {
         var reload = false;
         switch(event.keyCode) {
         case 38: //up - previous
-          reload = this.axis.onUp();
+          reload = this.axis.onUp(self);
           break;
         case 40: //down - next
-          reload = this.axis.onDown();
+          reload = this.axis.onDown(self);
           break;
         case 37:// left - next
-          reload = this.axis.onLeft();
+          reload = this.axis.onLeft(self);
           break;
         case 39: //right - previous
-          reload = this.axis.onRight();
+          reload = this.axis.onRight(self);
           break;
         }
         if(reload) {
@@ -535,8 +559,31 @@
        */
       value: function(cache, container, page) {
         this.current_ = this.makeFace_(container, page);
+        this.current_.attach(container);
         if(this.current_.nextPage) {
           this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
+          this.current_.next.attach(container);
+        }
+        if(this.current_.prevPage) {
+          this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+        }
+        this.pos_ = 0;
+        this.speed_ = 0;
+      }
+    },
+    seekPrev: {
+      /**
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
+       * @param {Minobi.Page} page
+       * @override
+       */
+      value: function(cache, container, page) {
+        this.current_ = this.makePrevFace_(container, page);
+        this.current_.attach(container);
+        if(this.current_.nextPage) {
+          this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
+          this.current_.next.attach(container);
         }
         if(this.current_.prevPage) {
           this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
@@ -608,25 +655,29 @@
        */
       value: function(cache, container) {
         // update faces pagination.
-        if(this.pos_ >= 1) {
+        if(this.pos_ > 1) {
           if(this.current_.nextPage) {
             this.pos_ -= 1.0;
-            this.current_.prev.detach(container);
+            this.current_.detach(container);
             this.current_.unlinkPrev();
             this.current_ = this.current_.next;
-            this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
-            this.current_.next.attach(container);
+            if(this.current_.nextPage) {
+              this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
+              this.current_.next.attach(container);
+            }
           } else {
             this.pos_ = 1.0;
           }
-        } else if(this.pos_ <= 0) {
+        } else if(this.pos_ < 0) {
           if(this.current_.prevPage) {
             this.pos_ += 1.0;
             this.current_.next.detach(container);
             this.current_.unlinkNext();
             this.current_ = this.current_.prev;
-            this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
-            this.current_.prev.attach(container);
+            this.current_.attach(container);
+            if(this.current_.prevPage) {
+              this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+            }
           } else {
             this.pos_ = 0.0;
           }
@@ -639,6 +690,9 @@
           this.current_.next.x = (this.pos_ - 1) * container.clientWidth;
           this.current_.next.render(cache, container);
         }
+        if(this.current_.prev) {
+          this.current_.prev.render(cache, container);
+        }
       }
     },
     onLeft: {
@@ -650,8 +704,8 @@
       value: function(viewer) {
         var cache = viewer.cache;
         var container = viewer.container;
-        if(this.current_.next) {
-          this.seek(cache, container, this.current_.prevPage);
+        if(this.current_.nextPage) {
+          this.seek(cache, container, this.current_.nextPage);
           return true;
         } else {
           return false;
@@ -668,7 +722,7 @@
         var cache = viewer.cache;
         var container = viewer.container;
         if(this.current_.prev) {
-          this.seek(cache, container, this.current_.nextPage);
+          this.seekPrev(cache, container, this.current_.prevPage);
           return true;
         } else {
           return false;
