@@ -604,7 +604,7 @@
        * @param {Minobi.Page} page
        * @override
        */
-      value: function(cache, container, page) {
+      value: function seek(cache, container, page) {
         //
         if(this.current_) {
           this.current_.detach(container);
@@ -624,6 +624,7 @@
         }
         if(this.current_.prevPage) {
           this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+          this.current_.prev.attach(container);
         }
         this.pos_ = 0;
         this.speed_ = 0;
@@ -638,7 +639,7 @@
        * @param {Minobi.Page} page
        * @override
        */
-      value: function(cache, container, page) {
+      value: function seekPrev(cache, container, page) {
         this.current_.detach(container);
         if(this.current_.prev) {
           this.current_.prev.detach(container);
@@ -654,6 +655,7 @@
         }
         if(this.current_.prevPage) {
           this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+          this.current_.prev.attach(container);
         }
         this.pos_ = 0;
         this.speed_ = 0;
@@ -725,7 +727,6 @@
         if(this.pos_ > 1) {
           if(this.current_.nextPage) {
             this.pos_ -= 1.0;
-            this.current_.detach(container);
             if(this.current_.prev) {
               this.current_.prev.detach(container);
               this.current_.unlinkPrev();
@@ -746,9 +747,9 @@
               this.current_.unlinkNext();
             }
             this.current_ = this.current_.prev;
-            this.current_.attach(container);
             if(this.current_.prevPage) {
               this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
+              this.current_.prev.attach(container);
             }
           } else {
             this.pos_ = 0.0;
@@ -818,9 +819,8 @@
       value: function onMove(viewer, dx, dy) {
         var cache = viewer.cache;
         var container = viewer.container;
-        var deltaX = dx / container.clientWidth;
+        var deltaX = dx / this.current_.width;
         this.pos_ += deltaX;
-        console.log(this.pos_);
         this.render(cache, container);
         return true;
       }
