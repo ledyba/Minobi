@@ -162,6 +162,9 @@
      /** @type {Minobi.Face} */
      this.prev = null;
 
+     this.width = 0;
+     this.height = 0;
+
      this.x_ = 0;
    };
    Minobi.Face.prototype = {
@@ -204,7 +207,11 @@
      },
      /** @param {number} opacity */
      set opacity(opacity) {
-       this.container.style.opacity = opacity;
+       this.outer_.style.opacity = opacity;
+     },
+     /** @param {number} index */
+     set zIndex(index) {
+       this.outer_.style.zIndex = index;
      },
      /** @param {number} x */
      set x(x) {
@@ -252,6 +259,8 @@
          var page = this.pages[i];
          w += page.scaledWidth;
        }
+       this.width = w;
+       this.height = container.clientHeight;
        var offX  = (container.clientWidth - w) / 2;
        for(var i = this.pages.length-1; i >= 0; i--) {
          var page = this.pages[i];
@@ -433,6 +442,12 @@
       var self = this;
       this.seek(this.chapter.pages[0]);
       this.render();
+      this.container_.addEventListener('mousemove', function(event) {
+        if(event.buttons != 0) {
+          self.axis.onMove(self, event.movementX, event.movementY);
+          event.preventDefault();
+        }
+      });
       this.container_.addEventListener('keyup', function(event) {
         var reload = false;
         switch(event.keyCode) {
@@ -531,6 +546,15 @@
      */
     onRight: function(viewer) {
       return false;
+    },
+    /**
+     * @param {Minobi.Viewer} viewer
+     * @param {number} dx
+     * @param {number} dy
+     * @return {boolean} reload
+     */
+    onMove: function(viewer, dx, dy) {
+      return false;
     }
   };
 
@@ -579,6 +603,13 @@
        * @override
        */
       value: function(cache, container, page) {
+        this.current_.detach(container);
+        if(this.current_.prev) {
+          this.current_.prev.detach(container);
+        }
+        if(this.current_.next) {
+          this.current_.next.detach(container);
+        }
         this.current_ = this.makePrevFace_(container, page);
         this.current_.attach(container);
         if(this.current_.nextPage) {
@@ -659,7 +690,9 @@
           if(this.current_.nextPage) {
             this.pos_ -= 1.0;
             this.current_.detach(container);
-            this.current_.unlinkPrev();
+            if(this.current_.prev) {
+              this.current_.unlinkPrev();
+            }
             this.current_ = this.current_.next;
             if(this.current_.nextPage) {
               this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
@@ -672,7 +705,9 @@
           if(this.current_.prevPage) {
             this.pos_ += 1.0;
             this.current_.next.detach(container);
-            this.current_.unlinkNext();
+            if(this.current_.next) {
+              this.current_.unlinkNext();
+            }
             this.current_ = this.current_.prev;
             this.current_.attach(container);
             if(this.current_.prevPage) {
@@ -684,13 +719,19 @@
         }
 
         // set opacity and scale for animation, then render faces.
-        this.current_.scale = (1 - this.pos_)*0.5 + 0.5;
+        this.current_.scale = (1 - this.pos_)*0.25 + 0.75;
+        this.current_.opacity = 1 - this.pos_;
         this.current_.render(cache, container);
+        this.current_.zIndex = 1;
         if(this.current_.next) {
           this.current_.next.x = (this.pos_ - 1) * container.clientWidth;
+          this.current_.next.opacity = 1;
+          this.current_.next.zIndex = 2;
           this.current_.next.render(cache, container);
         }
         if(this.current_.prev) {
+          this.current_.prev.zIndex = 0;
+          this.current_.prev.opacity = 0;
           this.current_.prev.render(cache, container);
         }
       }
@@ -727,6 +768,23 @@
         } else {
           return false;
         }
+      }
+    },
+    onMove: {
+      /**
+       * @param {Minobi.Viewer} viewer
+       * @param {number} dx
+       * @param {number} dy
+       * @return {boolean} reload
+       * @override
+       */
+      value: function onMove(viewer, dx, dy) {
+        var cache = viewer.cache;
+        var container = viewer.container;
+        var deltaX = dx / container.clientWidth;
+        this.pos_ += deltaX;
+        this.render(cache, container);
+        return true;
       }
     }
   });
