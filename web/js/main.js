@@ -442,6 +442,15 @@
       var self = this;
       this.seek(this.chapter.pages[0]);
       this.render();
+      this.container_.addEventListener('mouseup', function(event) {
+        self.axis.onMoveEnd(self);
+      });
+      this.container_.addEventListener('mouseleave', function(event) {
+        self.axis.onMoveEnd(self);
+      });
+      this.container_.addEventListener('mousedown', function(event) {
+        self.axis.onMoveStart(self);
+      });
       this.container_.addEventListener('mousemove', function(event) {
         if(event.buttons != 0) {
           self.axis.onMove(self, event.movementX, event.movementY);
@@ -555,7 +564,19 @@
      */
     onMove: function(viewer, dx, dy) {
       return false;
-    }
+    },
+    /**
+     * @param {Minobi.Viewer} viewer
+     */
+     onMoveEnd: function(viewer) {
+       return false;
+     },
+     /**
+      * @param {Minobi.Viewer} viewer
+      */
+      onMoveStart: function(viewer) {
+        return false;
+      }
   };
 
   /**
@@ -571,6 +592,8 @@
     this.pos_ = 0;
     /** @type {number} */
     this.speed_ = 0;
+    /** @type {number} */
+    this.timer = 0;
   };
 
   Minobi.HorizontalAxis.prototype = Object.create(Minobi.Axis.prototype, {
@@ -582,6 +605,17 @@
        * @override
        */
       value: function(cache, container, page) {
+        //
+        if(this.current_) {
+          this.current_.detach(container);
+          if(this.current_.prev) {
+            this.current_.prev.detach(container);
+          }
+          if(this.current_.next) {
+            this.current_.next.detach(container);
+          }
+        }
+        //
         this.current_ = this.makeFace_(container, page);
         this.current_.attach(container);
         if(this.current_.nextPage) {
@@ -593,6 +627,8 @@
         }
         this.pos_ = 0;
         this.speed_ = 0;
+        window.clearInterval(this.timer);
+        this.timer = 0;
       }
     },
     seekPrev: {
@@ -691,6 +727,7 @@
             this.pos_ -= 1.0;
             this.current_.detach(container);
             if(this.current_.prev) {
+              this.current_.prev.detach(container);
               this.current_.unlinkPrev();
             }
             this.current_ = this.current_.next;
@@ -704,8 +741,8 @@
         } else if(this.pos_ < 0) {
           if(this.current_.prevPage) {
             this.pos_ += 1.0;
-            this.current_.next.detach(container);
             if(this.current_.next) {
+              this.current_.next.detach(container);
               this.current_.unlinkNext();
             }
             this.current_ = this.current_.prev;
@@ -783,8 +820,66 @@
         var container = viewer.container;
         var deltaX = dx / container.clientWidth;
         this.pos_ += deltaX;
+        console.log(this.pos_);
         this.render(cache, container);
         return true;
+      }
+    },
+    onMoveEnd: {
+      /**
+       * @param {Minobi.Viewer} viewer
+       * @override
+       */
+      value: function onMoveEnd(viewer) {
+        if(this.timer) {
+          window.clearInterval(this.timer);
+          this.timer = 0;
+        }
+      }
+    },
+    onMoveEnd: {
+      /**
+       * @param {Minobi.Viewer} viewer
+       * @override
+       */
+      value: function onMoveEnd(viewer) {
+        var cache = viewer.cache;
+        var container = viewer.container;
+        this.speed_ = 0;
+        this.timer = window.setInterval(this.move_.bind(this, cache, container), 20);
+      }
+    },
+    move_: {
+      /**
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
+       */
+      value: function move_(cache, container) {
+        if(this.current_.next) {
+          if(this.pos_ < 0.5) {
+            this.speed_ -= 0.025;
+            this.pos_ += this.speed_;
+          }else if(this.pos_ >= 0.5){
+            this.speed_ += 0.025;
+            this.pos_ += this.speed_;
+          }
+        } else {
+          this.speed_ -= 0.025;
+          this.pos_ += this.speed_;
+        }
+        if(this.pos_ <= 0) {
+          this.pos_ = 0;
+          this.speed_ = 0;
+          window.clearInterval(this.timer);
+          this.timer = 0;
+        }
+        if(this.pos_ >= 1) {
+          this.pos_ = 1;
+          this.speed_ = 0;
+          window.clearInterval(this.timer);
+          this.timer = 0;
+        }
+        this.render(cache, container);
       }
     }
   });
