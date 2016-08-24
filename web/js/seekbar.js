@@ -30,6 +30,9 @@
 
     /** @param {number} v */
     this.onChanged = function(v) {};
+
+    /** @type {number} disableTimer_ */
+    this.hideTimer_ = 0;
   };
   SeekBar.prototype = {
     /** @param {number} v */
@@ -45,6 +48,19 @@
         return (event.clientX - self.container_.getBoundingClientRect().left) /
               (self.container_.clientWidth - self.button_.clientWidth);
       }
+      var hideBar = function() {
+        self.container_.classList.add('hidden');
+      };
+      var showBar = function(){
+        if(self.hideTimer_) {
+          window.clearTimeout(self.hideTimer_);
+          self.hideTimer_ = 0;
+        }
+        self.container_.classList.remove('hidden');
+      };
+      self.hideTimer_ = window.setTimeout(hideBar,1000);
+      this.container_.addEventListener('mouseenter', showBar);
+      this.container_.addEventListener('mouseleave', hideBar);
       this.button_.addEventListener('mousedown', function(event) {
         if(!pushed) {
           pushed = true;
@@ -67,6 +83,7 @@
       };
       var mouseMove = function(event){
         if(event.buttons != 0 && pushed) {
+          resetBar();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
           event.preventDefault();
