@@ -2,11 +2,58 @@ body {
   padding: 0px;
   margin: 0px;
 }
-.minobi {
+
+/* container */
+.minobi-parent {
   width: 100vw;
   height: 100vh;
   background-color: black;
   position: relative;
+  overflow: hidden;
+}
+
+/* seekbar */
+.minobi-seekbar {
+  width: 80%;
+  height: 3em;
+  position: absolute;
+  overflow: hidden;
+  left: 10%;
+  bottom: 0px;
+  z-index: 100;
+}
+
+.minobi-seekbar-background {
+  width: 100%;
+  height: 100%;
+  background-color: gray;
+  position: absolute;
+  overflow: hidden;
+  left: 0px;
+  bottom: 0px;
+  opacity: 0.5;
+}
+
+.minobi-seekbar-button {
+  width: 1em;
+  height: 3em;
+  background-color: white;
+  opacity: 1;
+  position: absolute;
+  overflow: hidden;
+  left: 0px;
+  bottom: 0px;
+  z-index: 101;
+}
+
+/* minobi core */
+.minobi {
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  position: absolute;
   overflow: hidden;
 }
 

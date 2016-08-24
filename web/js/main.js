@@ -427,32 +427,48 @@
 
     //
     this.container_.classList.add('minobi');
-    this.container_.addEventListener('load', function() {
-      this.render();
-    }.bind(this));
     //window.addEventListener('resize', function() {
     //  this.render();
     //}.bind(this));
+
+    /** @type {SeekBar} seekbar_ */
+    this.seekbar_ = null;
   };
 
   Minobi.Viewer.prototype = {
     /**
+     * @param {function(Minobi.Viewer)} clbk
      */
-    init: function() {
+    init: function(clbk) {
       var self = this;
+      this.container_.addEventListener('load', function() {
+        this.render();
+      }.bind(this));
       this.seek(this.chapter.pages[0]);
       this.render();
+      var pushed = false;
       this.container_.addEventListener('mouseup', function(event) {
-        self.axis.onMoveEnd(self);
+        if(pushed) {
+          pushed = false;
+          self.axis.onMoveEnd(self);
+          event.preventDefault();
+        }
       });
       this.container_.addEventListener('mouseleave', function(event) {
-        self.axis.onMoveEnd(self);
+        if(pushed) {
+          pushed = false;
+          self.axis.onMoveEnd(self);
+          event.preventDefault();
+        }
       });
       this.container_.addEventListener('mousedown', function(event) {
-        self.axis.onMoveStart(self);
+        if(!pushed) {
+          pushed = true;
+          self.axis.onMoveStart(self);
+        }
       });
       this.container_.addEventListener('mousemove', function(event) {
-        if(event.buttons != 0) {
+        if(event.buttons != 0 && pushed) {
           self.axis.onMove(self, event.movementX, event.movementY);
           event.preventDefault();
         }
@@ -478,6 +494,7 @@
         }
       }.bind(this));
       this.container_.focus();
+      clbk(this);
     },
     render: function() {
       this.axis.render(this.cache_, this.container_);
@@ -487,6 +504,19 @@
      */
     seek: function(page) {
       this.axis.seek(this.cache_, this.container_, page);
+    },
+    /** @param {SeekBar} seekbar*/
+    set seekbar(seekbar) {
+      var self = this;
+      /** @param {number} value */
+      seekbar.onChanged = function(value) {
+        self.seek(self.chapter.pages[value]);
+        self.render();
+      };
+      this.seekbar_ = seekbar;
+    },
+    get seekbar() {
+      return this.seekbar_;
     },
     /** @returns {HTMLDivElement} container */
     get container() {
@@ -947,8 +977,9 @@
   /**
    * @param {HTMLDivElement} container
    * @param {[{images: [{path: string, width: number, height:number}], width: number, height:number}]} chapterDef
+   * @param {function(Minobi.Viewer)} clbk
    */
-  Minobi.init = function(container, chapterDef) {
+  Minobi.init = function(container, chapterDef, clbk) {
     /** @type {[Minobi.Page]} */
     var pages = [];
     for(var i=0;i < chapterDef.length; i++) {
@@ -968,6 +999,6 @@
       }
     }
     var viewer = new Minobi.Viewer(container, new Minobi.Chapter(pages));
-    viewer.init();
+    viewer.init(clbk);
   };
 })();

@@ -13,11 +13,29 @@
 </head>
 
 <body>
-  <div id="minobi" tabindex="1"></div>
+  <div class="minobi-parent">
+    <div id="minobi" tabindex="1"></div>
+    <div id="minobi-seekbar" class="minobi-seekbar">
+      <div class="minobi-seekbar-background"></div>
+      <div id="minobi-seekbar-button" class="minobi-seekbar-button"></div>
+    </div>
+  </div>
   <script src="js/main.js"></script>
+  <script src="js/seekbar.js"></script>
   <script>
     var chapter = [{"images":[{"path":"manga/01.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/02.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/03.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/04.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/05.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/06.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/07.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/08.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/09.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/10.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/11.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/12.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/13.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/14.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/15.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/16.jpg","width":533,"height":800}],"width":533,"height":800}];
-    Minobi.init(document.getElementById("minobi"), chapter);
+    Minobi.init(document.getElementById("minobi"), chapter, function(viewer) {
+      var seekbar = new SeekBar(
+        document.getElementById("minobi-seekbar"),
+        document.getElementById("minobi-seekbar-button"),
+        0,
+        chapter.length - 1,
+        1,
+        -1,
+        0.4);
+      seekbar.init(0);
+      viewer.seekbar = seekbar;
+    });
   </script>
 </body>
 </html>
