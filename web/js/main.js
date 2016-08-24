@@ -447,30 +447,36 @@
       this.seek(this.chapter.pages[0]);
       this.render();
       var pushed = false;
-      this.container_.addEventListener('mouseup', function(event) {
+      var mouseUp = function(event) {
         if(pushed) {
           pushed = false;
           self.axis.onMoveEnd(self);
           event.preventDefault();
         }
-      });
-      this.container_.addEventListener('mouseleave', function(event) {
+      };
+      var mouseUp = function(event) {
+        window.removeEventListener('mousemove', mouseMove);
+        window.removeEventListener('mouseup', mouseUp);
+        window.removeEventListener('mouseleave', mouseUp);
         if(pushed) {
           pushed = false;
           self.axis.onMoveEnd(self);
           event.preventDefault();
         }
-      });
+      };
+      var mouseMove = function(event) {
+        if(event.buttons != 0 && pushed) {
+          self.axis.onMove(self, event.movementX, event.movementY);
+          event.preventDefault();
+        }
+      };
       this.container_.addEventListener('mousedown', function(event) {
         if(!pushed) {
           pushed = true;
           self.axis.onMoveStart(self);
-        }
-      });
-      this.container_.addEventListener('mousemove', function(event) {
-        if(event.buttons != 0 && pushed) {
-          self.axis.onMove(self, event.movementX, event.movementY);
-          event.preventDefault();
+          window.addEventListener('mousemove', mouseMove);
+          window.addEventListener('mouseup', mouseUp);
+          window.addEventListener('mouseleave', mouseUp);
         }
       });
       this.container_.addEventListener('keyup', function(event) {

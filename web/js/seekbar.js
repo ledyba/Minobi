@@ -49,20 +49,22 @@
         if(!pushed) {
           pushed = true;
           event.preventDefault();
+          window.addEventListener('mousemove', mouseMove);
+          window.addEventListener('mouseup', mouseUp);
+          window.addEventListener('mouseleave', mouseUp);
         }
       });
       var mouseUp = function(event) {
+        window.removeEventListener('mousemove', mouseMove);
+        window.removeEventListener('mouseup', mouseUp);
+        window.removeEventListener('mouseleave', mouseUp);
         if(pushed) {
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
-          console.log(v);
           pushed = false;
           event.preventDefault();
         }
       };
-      this.button_.addEventListener('mouseup', mouseUp);
-      this.container_.addEventListener('mouseup', mouseUp);
-      this.container_.addEventListener('mouseleave', mouseUp);
       var mouseMove = function(event){
         if(event.buttons != 0 && pushed) {
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
@@ -70,8 +72,6 @@
           event.preventDefault();
         }
       };
-      this.container_.addEventListener('mousemove', mouseMove);
-      this.button_.addEventListener('mousemove', mouseMove);
     },
     /** @returns {number} value */
     get value() {
