@@ -102,7 +102,7 @@
     /** @param {number} v */
     set scale(scale) {
       this.scale_ = scale;
-      this.elem.style.transform = 'scale('+scale+','+scale+')';
+      this.elem.style.transform = 'scale('+scale+')';
     },
     /** @return {number} scale */
     get scale() {
@@ -171,7 +171,7 @@
      /**
       * @param {HTMLDivElement} container
       */
-     attach: function(container) {
+     attach: function attach(container) {
        if(container === this.outer_.parentElement) {
          console.warn("already attached");
          return;
@@ -185,7 +185,7 @@
      /**
       * @param {HTMLDivElement} container
       */
-     detach: function(container) {
+     detach: function detach(container) {
        if(container !== this.outer_.parentElement) {
          console.warn("already detached");
          return;
@@ -199,7 +199,7 @@
      /** @param {number} scale */
      set scale(scale) {
        this.scale_ = scale;
-       this.inner.style.transform = 'scale('+scale+','+scale+')';
+       this.inner.style.transform = 'scale('+scale+')';
      },
      /** @return {number} scale */
      get scale() {
@@ -445,6 +445,8 @@
       this.seek(this.chapter.pages[0]);
       this.render();
       var clicked = false;
+
+      // Mouse
       var mouseUp = function(event) {
         window.removeEventListener('mousemove', mouseMove);
         window.removeEventListener('mouseup', mouseUp);
@@ -471,6 +473,56 @@
         }
       };
       this.container_.addEventListener('mousedown', mouseDown);
+
+      // Touch
+      var touch = null;
+      var lastTouchX = 0;
+      var lastTouchY = 0;
+      var touchStart = function(event) {
+        if(!clicked) {
+          clicked = true;
+          self.axis.onMoveStart(self);
+          window.addEventListener('touchmove', touchMove, {passive: true});
+          window.addEventListener('touchend', touchEnd, false);
+          window.addEventListener('touchleave', touchEnd, false);
+          window.addEventListener('touchcancel', touchEnd, false);
+          touch = event.targetTouches[0];
+          lastTouchX = touch.clientX;
+          lastTouchY = touch.clientY;
+        }
+      };
+      var touchEnd = function(event) {
+        window.removeEventListener('touchmove', touchMove);
+        window.removeEventListener('touchend', touchEnd);
+        window.removeEventListener('touchleave', touchEnd);
+        window.removeEventListener('touchcancel', touchEnd);
+        touch = null;
+        lastTouchX = 0;
+        lastTouchY = 0;
+        if(clicked) {
+          clicked = false;
+          self.axis.onMoveEnd(self);
+          event.preventDefault();
+        }
+      };
+      lastMoved = new Date().getTime();
+      var touchMove = function(event) {
+        if(!clicked) {
+          return;
+        }
+        var now = new Date().getTime();
+        if(now - lastMoved < 20) {
+          return;
+        }
+        lastMoved = now;
+        touch = event.targetTouches[touch.identifier];
+        self.axis.onMove(self, touch.clientX - lastTouchX, touch.clientY - lastTouchY);
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+      };
+      this.container_.addEventListener('touchstart', touchStart, {passive: true});
+
+      // keyboard
       this.container_.addEventListener('keyup', function(event) {
         var reload = false;
         switch(event.keyCode) {
@@ -694,7 +746,7 @@
        * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
        */
-      value: function(container, page) {
+      value: function makeFace_(container, page) {
         page.scale = this.calcScale_(container, page);
         var next = page.next;
         if(next) {
@@ -717,7 +769,7 @@
        * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
        */
-      value: function(container, page) {
+      value: function makePrevFace_(container, page) {
         page.scale = this.calcScale_(container, page);
         var prev = page.prev;
         if(prev) {
@@ -740,7 +792,7 @@
        * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
        */
-      value: function(container, page) {
+      value: function calcScale_(container, page) {
         return Math.min(container.clientWidth / page.width, container.clientHeight / page.height);
       }
     },
@@ -750,7 +802,7 @@
        * @param {HTMLDivElement} container
        * @override
        */
-      value: function(cache, container) {
+      value: function render(cache, container) {
         // update faces pagination.
         if(this.pos_ > 1) {
           if(this.current_.nextPage) {
@@ -808,7 +860,7 @@
        * @return {boolean} reload
        * @override
        */
-      value: function(viewer) {
+      value: function onLeft(viewer) {
         var cache = viewer.cache;
         var container = viewer.container;
         if(this.current_.nextPage) {
@@ -825,7 +877,7 @@
        * @return {boolean} reload
        * @override
        */
-      value: function(viewer) {
+      value: function onRight(viewer) {
         var cache = viewer.cache;
         var container = viewer.container;
         if(this.current_.prev) {
@@ -853,7 +905,7 @@
         return true;
       }
     },
-    onMoveEnd: {
+    onMoveStart: {
       /**
        * @param {Minobi.Viewer} viewer
        * @override

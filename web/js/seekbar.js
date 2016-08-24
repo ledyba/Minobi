@@ -107,12 +107,16 @@
       }
       this.onChanged(v);
     },
-    activate: function() {
+    /** @param {number} deactivateAfter */
+    activate: function(deactivateAfter) {
       if(this.hideTimer_) {
         window.clearTimeout(this.hideTimer_);
         this.hideTimer_ = 0;
       }
       this.container_.classList.remove('hidden');
+      if(deactivateAfter) {
+        this.deactivateAfter(deactivateAfter);
+      }
     },
     deactivate: function() {
       if(this.hideTimer_) {
