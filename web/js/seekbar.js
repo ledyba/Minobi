@@ -42,53 +42,48 @@
       /** @type {number} value */
       this.value = v;
 
-      /* mouse events */
-      var pushed = false;
+      /* hide seekbar after 1000 ms */
+      var hideBar = this.deactivate.bind(this);
+      var showBar = this.activate.bind(this);
+      self.deactivateAfter(1000);
+      this.container_.addEventListener('mouseenter', showBar);
+      this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, 1000));
+
+      /* slide event(mouse) */
+      var clicked = false;
       var calcPos = function(event) {
         return (event.clientX - self.container_.getBoundingClientRect().left) /
               (self.container_.clientWidth - self.button_.clientWidth);
-      }
-      var hideBar = function() {
-        self.container_.classList.add('hidden');
       };
-      var showBar = function(){
-        if(self.hideTimer_) {
-          window.clearTimeout(self.hideTimer_);
-          self.hideTimer_ = 0;
-        }
-        self.container_.classList.remove('hidden');
-      };
-      self.hideTimer_ = window.setTimeout(hideBar,1000);
-      this.container_.addEventListener('mouseenter', showBar);
-      this.container_.addEventListener('mouseleave', hideBar);
-      this.button_.addEventListener('mousedown', function(event) {
-        if(!pushed) {
-          pushed = true;
+      var mouseDown = function(event) {
+        if(!clicked) {
+          clicked = true;
           event.preventDefault();
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
           window.addEventListener('mouseleave', mouseUp);
         }
-      });
+      };
       var mouseUp = function(event) {
         window.removeEventListener('mousemove', mouseMove);
         window.removeEventListener('mouseup', mouseUp);
         window.removeEventListener('mouseleave', mouseUp);
-        if(pushed) {
+        if(clicked) {
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
-          pushed = false;
+          clicked = false;
           event.preventDefault();
         }
       };
       var mouseMove = function(event){
-        if(event.buttons != 0 && pushed) {
+        if(event.buttons != 0 && clicked) {
           resetBar();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
           event.preventDefault();
         }
       };
+      this.button_.addEventListener('mousedown', mouseDown);
     },
     /** @returns {number} value */
     get value() {
@@ -111,6 +106,28 @@
         this.button_.style.left = off + 'px';
       }
       this.onChanged(v);
+    },
+    activate: function() {
+      if(this.hideTimer_) {
+        window.clearTimeout(this.hideTimer_);
+        this.hideTimer_ = 0;
+      }
+      this.container_.classList.remove('hidden');
+    },
+    deactivate: function() {
+      if(this.hideTimer_) {
+        window.clearTimeout(this.hideTimer_);
+        this.hideTimer_ = 0;
+      }
+      this.container_.classList.add('hidden');
+    },
+    /** @param {number} delayMs */
+    deactivateAfter: function(delayMs) {
+      if(this.hideTimer_) {
+        window.clearTimeout(this.hideTimer_);
+        this.hideTimer_ = 0;
+      }
+      this.hideTimer_ = window.setTimeout(this.deactivate.bind(this), delayMs);
     }
   };
   window.SeekBar = SeekBar;
