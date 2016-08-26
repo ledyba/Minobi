@@ -71,6 +71,10 @@ body {
   overflow: hidden;
 }
 
+.manga-page-outer {
+  position: absolute;
+}
+
 .manga-page {
   position: absolute;
 }

@@ -51,20 +51,21 @@
     /** @type {HTMLDivElement} */
     this.elem = document.createElement('div');
     this.elem.className = 'manga-page';
-    /** @type {HTMLDivElement} */
-    var inner = document.createElement('div');
-    inner.className = 'manga-page';
-    this.elem.appendChild(inner);
+    this.elem.style.width = this.width+'px';
+    this.elem.style.height = this.height+'px';
+    this.elem.style.left = '0px';
+    this.elem.style.top = '0px';
+    this.elem.style.transformOrigin = '0% 0%';
     /** @type {!HTMLDivElement[]} */
     this.imageContainers = [];
     var left = 0;
     for(var i = 0; i < this.images.length; i++) {
-      /** @type {HTMLDivElement} */
+      /** @type {HTMLImageElement} */
       var img = images[i];
       var elem = img.element;
       elem.classList.add('manga-page-wrap');
       this.imageContainers.push(elem);
-      inner.appendChild(elem);
+      this.elem.appendChild(elem);
       elem.style.left = left + 'px';
       left += img.width;
     }
@@ -239,11 +240,11 @@
          w += page.scaledWidth;
        }
        this.width = w;
-       this.height = container.clientHeight;
-       var offX  = (container.clientWidth - w) / 2;
+       this.height = container.clientHeight_;
+       var offX  = (container.clientWidth_ - w) / 2;
        for(var i = this.pages.length-1; i >= 0; i--) {
          var page = this.pages[i];
-         page.transform(page.scale, offX / page.scale, (container.clientHeight - page.scaledHeight) / 2);
+         page.transform(page.scale, offX / page.scale, (container.clientHeight_ - page.scaledHeight) / 2);
          offX += page.scaledWidth;
        }
      },
@@ -419,9 +420,14 @@
      */
     init: function(clbk) {
       var self = this;
-      this.container_.addEventListener('load', this.render.bind(this));
-      this.seek(this.chapter.pages[0]);
-      this.render();
+      var load = function(){
+        window.removeEventListener('load', load);
+        self.container_.clientWidth_ = self.container_.clientWidth;
+        self.container_.clientHeight_ = self.container_.clientHeight;
+        self.seek(self.chapter.pages[0]);
+        self.render();
+      };
+      window.addEventListener('load', load);
       var clicked = false;
 
       // Mouse
@@ -731,7 +737,7 @@
         var next = page.next;
         if(next) {
           next.transform(this.calcScale_(container, next), 0, 0);
-          if(next.scaledWidth + page.scaledWidth <= container.clientWidth) {
+          if(next.scaledWidth + page.scaledWidth <= container.clientWidth_) {
             // make a face with 2 pages.
             var face = new Minobi.Face([page, next]);
             face.layout(container);
@@ -754,7 +760,7 @@
         var prev = page.prev;
         if(prev) {
           prev.transform(this.calcScale_(container, prev), 0, 0);
-          if(prev.scaledWidth + page.scaledWidth <= container.clientWidth) {
+          if(prev.scaledWidth + page.scaledWidth <= container.clientWidth_) {
             // make a face with 2 pages.
             var face = new Minobi.Face([prev, page]);
             face.layout(container);
@@ -773,7 +779,7 @@
        * @param {Minobi.Page} page
        */
       value: function calcScale_(container, page) {
-        return Math.min(container.clientWidth / page.width, container.clientHeight / page.height);
+        return Math.min(container.clientWidth_ / page.width, container.clientHeight_ / page.height);
       }
     },
     render: {
@@ -828,7 +834,7 @@
         this.current_.render(cache, container);
         if(this.current_.next) {
           this.current_.next.opacity = 1;
-          this.current_.next.transform(1, (this.pos_ - 1) * container.clientWidth, 0);
+          this.current_.next.transform(1, (this.pos_ - 1) * container.clientWidth_, 0);
           this.current_.next.render(cache, container);
         }
         if(this.current_.prev) {
