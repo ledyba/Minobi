@@ -99,28 +99,19 @@
       }
       container.removeChild(this.elem);
     },
-    /** @param {number} v */
-    set scale(scale) {
+    transform: function(scale, dx, dy) {
       this.scale_ = scale;
-      this.elem.style.transform = 'scale('+scale+')';
+      this.x_ = dx;
+      this.y_ = dy;
+      this.elem.style.transform = 'scale('+scale+') translate('+dx+'px, '+dy+'px)';
     },
     /** @return {number} scale */
     get scale() {
       return this.scale_;
     },
-    /** @param {number} x */
-    set x(x) {
-      this.x_ = x;
-      this.elem.style.left = x + 'px';
-    },
     /** @return {number} x */
     get x() {
       return this.x_;
-    },
-    /** @param {number} x */
-    set y(y) {
-      this.y_ = y;
-      this.elem.style.top = y + 'px';
     },
     /** @return {number} y */
     get y() {
@@ -146,12 +137,8 @@
      /** @type {number} */
      this.scale_ = 1.0;
      /** @type {HTMLDivElement} */
-     this.outer_ = document.createElement('div');
-     this.outer_.className = 'manga-face';
-     /** @type {HTMLDivElement} */
-     this.inner = document.createElement('div');
-     this.inner.className = 'manga-face-inner';
-     this.outer_.appendChild(this.inner);
+     this.elem_ = document.createElement('div');
+     this.elem_.className = 'manga-face';
      /** @type {Minobi.Page} */
      this.prevPage = pages[0].prev;
      /** @type {Minobi.Page} */
@@ -166,66 +153,58 @@
      this.height = 0;
 
      this.x_ = 0;
+     this.y_ = 0;
    };
    Minobi.Face.prototype = {
      /**
       * @param {HTMLDivElement} container
       */
      attach: function attach(container) {
-       if(container === this.outer_.parentElement) {
+       if(container === this.elem_.parentElement) {
          console.warn("already attached");
          return;
        }
-       container.appendChild(this.outer_);
+       container.appendChild(this.elem_);
        for(var i = 0; i < this.pages.length; i++) {
          var page = this.pages[i];
-         page.attach(this.inner);
+         page.attach(this.elem_);
        }
      },
      /**
       * @param {HTMLDivElement} container
       */
      detach: function detach(container) {
-       if(container !== this.outer_.parentElement) {
+       if(container !== this.elem_.parentElement) {
          console.warn("already detached");
          return;
        }
-       container.removeChild(this.outer_);
+       container.removeChild(this.elem_);
        for(var i = 0; i < this.pages.length; i++) {
          var page = this.pages[i];
-         page.detach(this.inner);
+         page.detach(this.elem_);
        }
      },
-     /** @param {number} scale */
-     set scale(scale) {
+     /** @param {number} opacity */
+     set opacity(opacity) {
+       this.elem_.style.opacity = opacity;
+     },
+     /** @param {number} index */
+     set zIndex(index) {
+       this.elem_.style.zIndex = index;
+     },
+     transform: function(scale, dx, dy) {
        this.scale_ = scale;
-       this.inner.style.transform = 'scale('+scale+')';
+       this.x_ = dx;
+       this.y_ = dy;
+       this.elem_.style.transform = 'scale('+scale+') translate('+dx+'px, '+dy+'px)';
      },
      /** @return {number} scale */
      get scale() {
        return this.scale_;
      },
-     /** @param {number} opacity */
-     set opacity(opacity) {
-       this.outer_.style.opacity = opacity;
-     },
-     /** @param {number} index */
-     set zIndex(index) {
-       this.outer_.style.zIndex = index;
-     },
-     /** @param {number} x */
-     set x(x) {
-       this.x_ = x;
-       this.outer_.style.left = x + 'px';
-     },
      /** @return {number} x */
      get x() {
        return this.x_;
-     },
-     /** @param {number} x */
-     set y(y) {
-       this.y_ = y;
-       this.outer_.style.top = y + 'px';
      },
      /** @return {number} y */
      get y() {
@@ -264,8 +243,7 @@
        var offX  = (container.clientWidth - w) / 2;
        for(var i = this.pages.length-1; i >= 0; i--) {
          var page = this.pages[i];
-         page.x = offX;
-         page.y = (container.clientHeight - page.scaledHeight) / 2;
+         page.transform(page.scale, offX / page.scale, (container.clientHeight - page.scaledHeight) / 2);
          offX += page.scaledWidth;
        }
      },
@@ -654,9 +632,9 @@
      /**
       * @param {Minobi.Viewer} viewer
       */
-      onMoveStart: function(viewer) {
-        return false;
-      }
+    onMoveStart: function(viewer) {
+      return false;
+    }
   };
 
   /**
@@ -708,8 +686,10 @@
         }
         this.pos_ = 0;
         this.speed_ = 0;
-        window.clearInterval(this.timer);
-        this.timer = 0;
+        if(this.timer) {
+          window.clearInterval(this.timer);
+          this.timer = 0;
+        }
       }
     },
     seekPrev: {
@@ -747,10 +727,10 @@
        * @param {Minobi.Page} page
        */
       value: function makeFace_(container, page) {
-        page.scale = this.calcScale_(container, page);
+        page.transform(this.calcScale_(container, page), 0, 0);
         var next = page.next;
         if(next) {
-          next.scale = this.calcScale_(container, next);
+          next.transform(this.calcScale_(container, next), 0, 0);
           if(next.scaledWidth + page.scaledWidth <= container.clientWidth) {
             // make a face with 2 pages.
             var face = new Minobi.Face([page, next]);
@@ -770,10 +750,10 @@
        * @param {Minobi.Page} page
        */
       value: function makePrevFace_(container, page) {
-        page.scale = this.calcScale_(container, page);
+        page.transform(this.calcScale_(container, page), 0, 0);
         var prev = page.prev;
         if(prev) {
-          prev.scale = this.calcScale_(container, prev);
+          prev.transform(this.calcScale_(container, prev), 0, 0);
           if(prev.scaledWidth + page.scaledWidth <= container.clientWidth) {
             // make a face with 2 pages.
             var face = new Minobi.Face([prev, page]);
@@ -812,9 +792,12 @@
               this.current_.unlinkPrev();
             }
             this.current_ = this.current_.next;
+            this.current_.zIndex = 1;
+            this.current_.prev.zIndex = 0;
             if(this.current_.nextPage) {
               this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
               this.current_.next.attach(container);
+              this.current_.next.zIndex = 2;
             }
           } else {
             this.pos_ = 1.0;
@@ -827,9 +810,12 @@
               this.current_.unlinkNext();
             }
             this.current_ = this.current_.prev;
+            this.current_.zIndex = 1;
+            this.current_.next.zIndex = 2;
             if(this.current_.prevPage) {
               this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
               this.current_.prev.attach(container);
+              this.current_.prev.zIndex = 0;
             }
           } else {
             this.pos_ = 0.0;
@@ -837,18 +823,15 @@
         }
 
         // set opacity and scale for animation, then render faces.
-        this.current_.scale = (1 - this.pos_)*0.25 + 0.75;
         this.current_.opacity = 1 - this.pos_;
+        this.current_.transform((1 - this.pos_)*0.25 + 0.75, 0, 0);
         this.current_.render(cache, container);
-        this.current_.zIndex = 1;
         if(this.current_.next) {
-          this.current_.next.x = (this.pos_ - 1) * container.clientWidth;
           this.current_.next.opacity = 1;
-          this.current_.next.zIndex = 2;
+          this.current_.next.transform(1, (this.pos_ - 1) * container.clientWidth, 0);
           this.current_.next.render(cache, container);
         }
         if(this.current_.prev) {
-          this.current_.prev.zIndex = 0;
           this.current_.prev.opacity = 0;
           this.current_.prev.render(cache, container);
         }
