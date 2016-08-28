@@ -495,7 +495,7 @@
           return;
         }
         var now = new Date().getTime();
-        if(now - lastMoved < 20) {
+        if(now - lastMoved < 25) {
           return;
         }
         lastMoved = now;
