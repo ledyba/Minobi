@@ -287,6 +287,8 @@
     for(var i = 0; i < Minobi.ImageCache.MAX_WORKER; i++) {
       this.workers_.push(new Minobi.ImageLoader(this));
     }
+    /** @type {Object.<string, boolean>} this.xhr_ */
+    this.enqueued_ = {};
   };
   Minobi.ImageCache.MAX_IMAGE = 10;
   Minobi.ImageCache.MAX_WORKER = 5;
@@ -304,6 +306,11 @@
           this.cacheList_.splice(idx, 1);
           this.cacheList_.push(img);
         } else {
+          if(!!this.enqueued_[img.url]) {
+            console.warn("Already enqueued: ", img.url);
+            continue;
+          }
+          this.enqueued_[img.url] = true;
           // Tell a worker to load the image with Ajax.
           this.workers_[this.workerIdx_].load(img);
           this.workerIdx_ = (this.workerIdx_ + 1) % Minobi.ImageCache.MAX_WORKER;
@@ -324,6 +331,7 @@
      * @param {Minobi.ImageEntity} entity
      */
     onLoaded: function(img, entity) {
+      delete this.enqueued_[img.url];
       img.element.src = entity.url;
       img.entity = entity;
       this.cacheList_.push(img);
@@ -332,6 +340,18 @@
         var removedImage = this.cacheList_.shift();
         removedImage.clear();
       }
+    },
+    /**
+     * @param {Minobi.Image} img
+     */
+    onAborted: function(img) {
+      delete this.enqueued_[img.url];
+    },
+    /**
+     * @param {Minobi.Image} img
+     */
+    onError: function(img) {
+      delete this.enqueued_[img.url];
     }
   };
 
@@ -351,9 +371,13 @@
     load: function(img) {
       var self = this;
       if(this.xhr_) {
+        console.warn("Request aborted: ", this.xhr_.img.url);
+        this.xhr_.onreadystatechange = null;
         this.xhr_.abort();
+        this.cache_.onAborted(this.xhr_.img);
       }
       var xhr = new XMLHttpRequest();
+      xhr.img = img;
       xhr.responseType = "arraybuffer";
       xhr.onreadystatechange = function onReadyStateChange() {
         if (xhr.readyState == 4) {
@@ -362,6 +386,7 @@
             self.cache_.onLoaded(img, new Minobi.ImageEntity(new Uint8Array(xhr.response)));
           }else{
             console.error("We can't load file: ", img.url, xhr);
+            self.cache_.onError(this.xhr_.img);
           }
         }
       };
@@ -495,7 +520,7 @@
           return;
         }
         var now = new Date().getTime();
-        if(now - lastMoved < 25) {
+        if(now - lastMoved < 10) {
           return;
         }
         lastMoved = now;
