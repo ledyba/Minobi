@@ -626,7 +626,7 @@
      * @param {HTMLDivElement} container
      * @param {Minobi.Page} page
      */
-    seek: function(cache, container, page){
+    seek: function(cache, container, page) {
       throw new Error("Please implement Minobi.Axis.seek");
     },
     /**

@@ -44,7 +44,7 @@
 
       /* hide seekbar after 1000 ms */
       var hideBar = this.deactivate.bind(this);
-      var showBar = this.activate.bind(this);
+      var showBar = this.activate.bind(this, 0);
       self.deactivateAfter(1000);
       this.container_.addEventListener('mouseenter', showBar);
       this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, 1000));
@@ -57,8 +57,8 @@
       };
       var mouseDown = function(event) {
         if(!clicked) {
-          clicked = true;
           event.preventDefault();
+          clicked = true;
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
           window.addEventListener('mouseleave', mouseUp);
@@ -69,18 +69,17 @@
         window.removeEventListener('mouseup', mouseUp);
         window.removeEventListener('mouseleave', mouseUp);
         if(clicked) {
+          event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
           clicked = false;
-          event.preventDefault();
         }
       };
       var mouseMove = function(event){
         if(event.buttons != 0 && clicked) {
-          resetBar();
+          event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
-          event.preventDefault();
         }
       };
       this.button_.addEventListener('mousedown', mouseDown);
