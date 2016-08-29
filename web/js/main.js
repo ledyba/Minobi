@@ -56,6 +56,7 @@
     this.elem.style.left = '0px';
     this.elem.style.top = '0px';
     this.elem.style.transformOrigin = '0% 0%';
+    this.elem.style['-webkit-transformOrigin'] = '0% 0%';
     /** @type {!HTMLDivElement[]} */
     this.imageContainers = [];
     var left = 0;
@@ -104,7 +105,9 @@
       this.scale_ = scale;
       this.x_ = dx;
       this.y_ = dy;
-      this.elem.style.transform = 'scale('+scale+') translate('+dx+'px, '+dy+'px)';
+      var trans = 'scale('+scale+') translate('+dx+'px, '+dy+'px)';
+      this.elem.style.transform = trans;
+      this.elem.style['-webkit-transform'] = trans;
     },
     /** @return {number} scale */
     get scale() {
@@ -197,7 +200,9 @@
        this.scale_ = scale;
        this.x_ = dx;
        this.y_ = dy;
-       this.elem_.style.transform = 'scale('+scale+') translate('+dx+'px, '+dy+'px)';
+       var trans = 'scale('+scale+') translate('+dx+'px, '+dy+'px)';
+       this.elem_.style.transform = trans;
+       this.elem_.style['-webkit-transform'] = trans;
      },
      /** @return {number} scale */
      get scale() {
@@ -488,7 +493,8 @@
       var lastTouchX = 0;
       var lastTouchY = 0;
       var touchStart = function(event) {
-        if(!clicked) {
+        if(!clicked && !!event.targetTouches[0]) {
+          event.preventDefault();
           clicked = true;
           self.axis.onMoveStart(self);
           window.addEventListener('touchmove', touchMove, {passive: true});
@@ -524,12 +530,23 @@
           return;
         }
         lastMoved = now;
-        touch = event.targetTouches[touch.identifier];
+        // https://www.w3.org/TR/touch-events/
+        var ntouch = null;
+        for(var i = 0; i < event.touches.length; i++) {
+          if(event.touches[i].identifier == touch.identifier) {
+            ntouch = event.touches[i];
+            break;
+          }
+        }
+        if(!ntouch) {
+          return;
+        }
+        touch = ntouch;
         self.axis.onMove(self, touch.clientX - lastTouchX, touch.clientY - lastTouchY);
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
       };
-      this.container_.addEventListener('touchstart', touchStart, {passive: true});
+      this.container_.addEventListener('touchstart', touchStart, false);
 
       // keyboard
       this.container_.addEventListener('keyup', function(event) {
@@ -553,7 +570,9 @@
         }
       }.bind(this));
       this.container_.focus();
-      clbk(this);
+      if(clbk) {
+        clbk(this);
+      }
     },
     render: function() {
       this.axis.render(this.cache_, this.container_);
