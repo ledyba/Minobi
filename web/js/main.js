@@ -64,7 +64,7 @@
       /** @type {HTMLImageElement} */
       var img = images[i];
       var elem = img.element;
-      elem.classList.add('manga-page-wrap');
+      elem.classList.add('manga-image');
       this.imageContainers.push(elem);
       this.elem.appendChild(elem);
       elem.style.left = left + 'px';

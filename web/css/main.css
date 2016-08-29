@@ -76,12 +76,8 @@ body {
   will-change:transform;
 }
 
-.manga-image-wrap {
-  position: absolute;
-}
-
 .manga-image {
-
+  position: absolute;
 }
 
 .manga-face {
