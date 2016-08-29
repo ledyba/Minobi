@@ -83,11 +83,61 @@
         }
       };
       this.button_.addEventListener('mousedown', mouseDown);
+
+      // Touch
+      var touch = null;
+      var touchStart = function(event) {
+        if(!clicked && !!event.targetTouches[0]) {
+          event.preventDefault();
+          self.activate();
+          clicked = true;
+          window.addEventListener('touchmove', touchMove, {passive: true});
+          window.addEventListener('touchend', touchEnd, false);
+          window.addEventListener('touchleave', touchEnd, false);
+          window.addEventListener('touchcancel', touchEnd, false);
+          touch = event.targetTouches[0];
+        }
+      };
+      var touchEnd = function(event) {
+        window.removeEventListener('touchmove', touchMove);
+        window.removeEventListener('touchend', touchEnd);
+        window.removeEventListener('touchleave', touchEnd);
+        window.removeEventListener('touchcancel', touchEnd);
+        if(clicked) {
+          var v = (self.orientation_ > 0 ? calcPos(touch) : (1-calcPos(touch))) * (self.max_ - self.min_) + self.min_;
+          self.value = v;
+          clicked = false;
+          self.deactivateAfter(1000);
+        }
+        touch = null;
+      };
+
+      lastMoved = new Date().getTime();
+      var touchMove = function(event) {
+        if(!clicked) {
+          return;
+        }
+        var now = new Date().getTime();
+        if(now - lastMoved < 10) {
+          return;
+        }
+        lastMoved = now;
+        var ntouch = Minobi.findTouchEvent(event.touches, touch.identifier);
+        if(!ntouch) {
+          return;
+        }
+        touch = ntouch;
+
+        var v = (self.orientation_ > 0 ? calcPos(touch) : (1 - calcPos(touch))) * (self.max_ - self.min_) + self.min_;
+        self.value = v;
+      };
+      this.button_.addEventListener('touchstart', touchStart, false);
     },
     /** @returns {number} value */
     get value() {
       return this.value_;
     },
+    changedTimer_: 0,
     /** @param {number} v */
     set value(v) {
       v = Math.round(v / this.step_) * this.step_;
@@ -104,7 +154,14 @@
         var off = total * (1 - (v / (this.max_ - this.min_)));
         this.button_.style.left = off + 'px';
       }
-      this.onChanged(v);
+      var self = this;
+      if(this.changedTimer_) {
+        window.clearTimeout(this.changedTimer_);
+      }
+      this.changedTimer_ = window.setTimeout(function(){
+        self.onChanged(v);
+        self.changedTimer_ = 0;
+      }, 100);
     },
     /** @param {number} deactivateAfter */
     activate: function(deactivateAfter) {

@@ -1,6 +1,21 @@
 (function(){
   var Minobi = {};
 
+  /**
+   * @param {TouchList} touchList
+   * @param {number} identifier
+   * @returns {Touch} touch
+   */
+  Minobi.findTouchEvent = function(touchList, identifier){
+    // https://www.w3.org/TR/touch-events/
+    for(var i = 0; i < touchList.length; i++) {
+      if(touchList[i].identifier == identifier) {
+        return touchList[i];
+      }
+    }
+    return null;
+  };
+
   /*** Data Model ***/
 
   window.Minobi = Minobi;
@@ -530,14 +545,7 @@
           return;
         }
         lastMoved = now;
-        // https://www.w3.org/TR/touch-events/
-        var ntouch = null;
-        for(var i = 0; i < event.touches.length; i++) {
-          if(event.touches[i].identifier == touch.identifier) {
-            ntouch = event.touches[i];
-            break;
-          }
-        }
+        var ntouch = Minobi.findTouchEvent(event.touches, touch.identifier);
         if(!ntouch) {
           return;
         }
