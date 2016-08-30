@@ -457,6 +457,11 @@
 
     /** @type {SeekBar} seekbar_ */
     this.seekbar_ = null;
+
+    /** @type {number} maxTapDistance_ */
+    this.maxTapDistance_ = 0;
+    /** @type {number} emInPx_ */
+    this.emInPx_ = 0;
   };
 
   Minobi.Viewer.prototype = {
@@ -465,37 +470,39 @@
      */
     init: function(clbk) {
       var self = this;
-      var load = function(){
-        window.removeEventListener('load', load);
-        self.container_.clientWidth_ = self.container_.clientWidth;
-        self.container_.clientHeight_ = self.container_.clientHeight;
-        self.seek(self.chapter.pages[0]);
-        self.render();
-      };
-      window.addEventListener('load', load);
       var clicked = false;
 
       // Mouse
+      var firstMouseX = 0;
+      var firstMouseY = 0;
       var mouseUp = function(event) {
         window.removeEventListener('mousemove', mouseMove);
         window.removeEventListener('mouseup', mouseUp);
         window.removeEventListener('mouseleave', mouseUp);
         if(clicked) {
-          clicked = false;
-          self.axis.onMoveEnd(self);
           event.preventDefault();
+          clicked = false;
+          var dx = event.clientX - firstMouseX;
+          var dy = event.clientY - firstMouseY;
+          var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
+          self.axis.onMoveEnd(self, isTap,
+            (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_,
+            (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_);
         }
       };
       var mouseMove = function(event) {
-        if(event.buttons != 0 && clicked) {
-          self.axis.onMove(self, event.movementX, event.movementY);
+        if(clicked) {
           event.preventDefault();
+          self.axis.onMove(self, event.movementX, event.movementY);
         }
       };
       var mouseDown = function(event) {
-        if(!clicked) {
+        if(event.buttons != 0 && !clicked) {
+          event.preventDefault();
           clicked = true;
           self.axis.onMoveStart(self);
+          firstMouseX = event.clientX;
+          firstMouseY = event.clientY;
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
           window.addEventListener('mouseleave', mouseUp);
@@ -505,6 +512,8 @@
 
       // Touch
       var touch = null;
+      var firstTouchX = 0;
+      var firstTouchY = 0;
       var lastTouchX = 0;
       var lastTouchY = 0;
       var touchStart = function(event) {
@@ -517,8 +526,8 @@
           window.addEventListener('touchleave', touchEnd, false);
           window.addEventListener('touchcancel', touchEnd, false);
           touch = event.targetTouches[0];
-          lastTouchX = touch.clientX;
-          lastTouchY = touch.clientY;
+          firstTouchX = lastTouchX = touch.clientX;
+          firstTouchY = lastTouchY = touch.clientY;
         }
       };
       var touchEnd = function(event) {
@@ -526,14 +535,22 @@
         window.removeEventListener('touchend', touchEnd);
         window.removeEventListener('touchleave', touchEnd);
         window.removeEventListener('touchcancel', touchEnd);
-        touch = null;
-        lastTouchX = 0;
-        lastTouchY = 0;
         if(clicked) {
-          clicked = false;
-          self.axis.onMoveEnd(self);
           event.preventDefault();
+          lastTouchX = touch.clientX;
+          lastTouchY = touch.clientY;
+          self.axis.onMoveEnd(self);
+          var dx = lastTouchX - firstTouchX;
+          var dy = lastTouchY - firstTouchY;
+          var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
+          self.axis.onMoveEnd(self, isTap,
+            (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_,
+            (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_);
         }
+        clicked = false;
+        touch = null;
+        firstTouchX = lastTouchX = 0;
+        firstTouchY = lastTouchY = 0;
       };
       lastMoved = new Date().getTime();
       var touchMove = function(event) {
@@ -577,7 +594,24 @@
           this.render();
         }
       }.bind(this));
-      this.container_.focus();
+      var onDomContentLoaded = function(){
+        window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
+        self.container_.clientWidth_ = self.container_.clientWidth;
+        self.container_.clientHeight_ = self.container_.clientHeight;
+        var rect = self.container_.getBoundingClientRect();
+        self.container_.boundingLeft_ = rect.left;
+        self.container_.boundingTop_ = rect.top;
+        self.seek(self.chapter.pages[0]);
+        self.render();
+      };
+      var onLoad = function() {
+        window.removeEventListener('load', onLoad);
+        self.emInPx_ = parseFloat(getComputedStyle(window.document.body).fontSize);
+        self.maxTapDistance_ = self.emInPx_ * 3;
+        self.container_.focus();
+      };
+      window.addEventListener('DOMContentLoaded', onDomContentLoaded);
+      window.addEventListener('load', onLoad);
       if(clbk) {
         clbk(this);
       }
@@ -600,6 +634,13 @@
         self.render();
       };
       this.seekbar_ = seekbar;
+    },
+    /**
+     * @param {[number]} pages
+     * @protected
+     */
+    onPageEnter_: function(pages) {
+
     },
     get seekbar() {
       return this.seekbar_;
@@ -683,10 +724,13 @@
     },
     /**
      * @param {Minobi.Viewer} viewer
+     * @param {boolean} isTap
+     * @param {number} lastRelX
+     * @param {number} lastRelY
      */
-     onMoveEnd: function(viewer) {
-       return false;
-     },
+    onMoveEnd: function(viewer, isTap, lastRelX, lastRelY) {
+      return false;
+    },
      /**
       * @param {Minobi.Viewer} viewer
       */
@@ -961,13 +1005,28 @@
     onMoveEnd: {
       /**
        * @param {Minobi.Viewer} viewer
+       * @param {boolean} isTap
+       * @param {number} lastRelX
+       * @param {number} lastRelY
        * @override
        */
-      value: function onMoveEnd(viewer) {
+      value: function onMoveEnd(viewer, isTap, lastRelX, lastRelY) {
         var cache = viewer.cache;
         var container = viewer.container;
-        this.speed_ = 0;
-        this.timer = window.setInterval(this.move_.bind(this, cache, container), 20);
+        if(isTap) {
+          if(lastRelX < 0.4 && this.current_.nextPage) {
+            this.seek(cache, container, this.current_.nextPage);
+            viewer.render();
+          } else if(lastRelX > 0.6 && this.current_.prevPage) {
+            this.seekPrev(cache, container, this.current_.prevPage);
+            viewer.render();
+          } else {
+            viewer.seekbar.activate(1000);
+          }
+        } else {
+          this.speed_ = 0;
+          this.timer = window.setInterval(this.move_.bind(this, cache, container), 20);
+        }
       }
     },
     move_: {

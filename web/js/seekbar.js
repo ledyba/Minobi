@@ -56,7 +56,7 @@
               (self.container_.clientWidth - self.button_.clientWidth);
       };
       var mouseDown = function(event) {
-        if(!clicked) {
+        if(event.buttons != 0 && !clicked) {
           event.preventDefault();
           clicked = true;
           window.addEventListener('mousemove', mouseMove);
@@ -76,7 +76,7 @@
         }
       };
       var mouseMove = function(event){
-        if(event.buttons != 0 && clicked) {
+        if(clicked) {
           event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
