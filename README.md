@@ -24,15 +24,19 @@ Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html
 This event will be fired when a user enter pages. The 'pages' argument is a list of page numbers, and it may consist of more than one page numbers, since Minobi displays more than one pages in the screen if applicable.
 
 ```js
-var minobi = new Minobi.Viewer(/*...*/);
-/**
- * @param {[number]} pages
- */
-var handler = function(pages){
-  // ...
-};
-minobi.addEventListener('pageenter', handler);
-minobi.removeEventListener('pageenter', handler);
+var chapter = {/* page catalog in json */}/
+Minobi.init(document.getElementById("minobi"), chapter, function(viewer) {
+      //...
+
+      /**
+       * @param {[number]} pages
+       */
+      var handler = function(pages){
+        // ...
+      };
+      viewer.addEventListener('pageenter', handler);
+      viewer.removeEventListener('pageenter', handler);
+    });
 ```
 
 # License
