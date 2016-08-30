@@ -9,7 +9,7 @@
  - Latest Chrome.
 
 ## Dependencies
- Minobi does not depend on any external library or frameworks.
+ Minobi does not depend on any external libraries or frameworks.
 
 # How to use
 
