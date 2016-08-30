@@ -47,12 +47,14 @@
   };
 
   /**
+   * @param {number} idx
    * @param {[Minobi.Image]} images
    * @param {number} width
    * @param {number} height
    * @constructor
    */
-  Minobi.Page = function(images, width, height) {
+  Minobi.Page = function(idx, images, width, height) {
+    this.idx = idx;
     this.scale_ = 1;
     this.x_ = 0;
     this.y_ = 0;
@@ -1141,7 +1143,7 @@
         var image = new Minobi.Image(imgDef.path, imgDef.width, imgDef.height);
         images.push(image);
       }
-      var page = new Minobi.Page(images, pageDef.width, pageDef.height);
+      var page = new Minobi.Page(i, images, pageDef.width, pageDef.height);
       pages.push(page);
       if(i > 0) {
         pages[i-1].next = page;
