@@ -21,7 +21,7 @@ Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html
 
 ### PageEnter
 
-This event will be fired when a user enter pages. The 'pages' argument is a list of page numbers, and it may consist of more than one page numbers, since Minobi displays more than one pages in the scree if applicable.
+This event will be fired when a user enter pages. The 'pages' argument is a list of page numbers, and it may consist of more than one page numbers, since Minobi displays more than one pages in the screen if applicable.
 
 ```js
 var minobi = new Minobi.Viewer(/*...*/);
