@@ -464,6 +464,10 @@
     this.maxTapDistance_ = 0;
     /** @type {number} emInPx_ */
     this.emInPx_ = 0;
+
+    /** @type {Object.<string, [function()]>} */
+    this.listeners_ = {};
+    this.listeners_['pageenter'] = [];
   };
 
   Minobi.Viewer.prototype = {
@@ -638,11 +642,51 @@
       this.seekbar_ = seekbar;
     },
     /**
+     * @param {string} name
+     * @param {function} clbk
+     */
+    addEventListener: function(name, clbk) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      if(list.indexOf(clbk) >= 0) {
+        console.warn("The given listener was already registered.");
+        return;
+      }
+      list.push(clbk);
+    },
+    /**
+     * @param {string} name
+     * @param {function} clbk
+     */
+    removeEventListener: function(name, clbk) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      var idx = list.indexOf(clbk);
+      if(idx < 0) {
+        console.warn("The given listener was not registered.");
+        return;
+      }
+      list.splice(idx, 1);
+    },
+    /**
      * @param {[number]} pages
      * @protected
      */
     onPageEnter_: function(pages) {
-
+      if(pages.length > 0) {
+        /** @type {[function()]} listeners */
+        var listeners = this.listeners_['pageenter'];
+        for(var i = 0; i < listeners.length; i++) {
+          listeners[i](pages);
+        }
+        this.seekbar.move(pages[0]);
+      }
     },
     get seekbar() {
       return this.seekbar_;
@@ -656,7 +700,9 @@
       return this.cache_;
     },
     makeHorizontalAxis: function() {
-      return new Minobi.HorizontalAxis(this.chapter);
+      var axis = new Minobi.HorizontalAxis(this.chapter);
+      axis.addEventListener('pageenter', this.onPageEnter_.bind(this));
+      return axis;
     },
     makeVertivalAxis: function() {
       return new Minobi.VerticalAxis(this.chapter);
@@ -669,6 +715,10 @@
    */
   Minobi.Axis = function(chapter) {
     this.chapter_ = chapter;
+
+    /** @type {Object.<string, [function()]>} */
+    this.listeners_ = {};
+    this.listeners_['pageenter'] = [];
   };
 
   Minobi.Axis.prototype = {
@@ -738,6 +788,56 @@
       */
     onMoveStart: function(viewer) {
       return false;
+    },
+    /**
+     * @param {string} name
+     * @param {function} clbk
+     */
+    addEventListener: function(name, clbk) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      if(list.indexOf(clbk) >= 0) {
+        console.warn("The given listener was already registered.");
+        return;
+      }
+      list.push(clbk);
+    },
+    /**
+     * @param {string} name
+     * @param {function} clbk
+     */
+    removeEventListener: function(name, clbk) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      var idx = list.indexOf(clbk);
+      if(idx < 0) {
+        console.warn("The given listener was not registered.");
+        return;
+      }
+      list.splice(idx, 1);
+    },
+    /**
+     * @param {string} name
+     * @protected
+     */
+    dispatchEvent_: function(name) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      var args = [];
+      Array.prototype.push.apply(args, arguments);
+      args.shift();
+      for(var i = 0; i < list.length; i++) {
+        list[i].apply(null, args);
+      }
     }
   };
 
@@ -747,7 +847,7 @@
    * @constructor
    */
   Minobi.HorizontalAxis = function(chapter) {
-    Minobi.Axis.call(chapter);
+    Minobi.Axis.call(this, chapter);
     /** @type {Minobi.Face} */
     this.current_ = null;
     /** @type {number} */
@@ -794,6 +894,7 @@
           window.clearInterval(this.timer);
           this.timer = 0;
         }
+        this.dispatchPageEnterEvent();
       }
     },
     seekPrev: {
@@ -823,6 +924,7 @@
         }
         this.pos_ = 0;
         this.speed_ = 0;
+        this.dispatchPageEnterEvent();
       }
     },
     makeFace_: {
@@ -880,6 +982,18 @@
         return Math.min(container.clientWidth_ / page.width, container.clientHeight_ / page.height);
       }
     },
+    dispatchPageEnterEvent: {
+      /**
+       *
+       */
+      value: function() {
+        var pages = [];
+        for(var i = 0; i < this.current_.pages.length; i++) {
+          pages.push(this.current_.pages[i].idx);
+        }
+        this.dispatchEvent_('pageenter', pages);
+      }
+    },
     render: {
       /**
        * @param {Minobi.ImageCache} cache
@@ -903,6 +1017,7 @@
               this.current_.next.attach(container);
               this.current_.next.zIndex = 2;
             }
+            this.dispatchPageEnterEvent();
           } else {
             this.pos_ = 1.0;
           }
@@ -921,6 +1036,7 @@
               this.current_.prev.attach(container);
               this.current_.prev.zIndex = 0;
             }
+            this.dispatchPageEnterEvent();
           } else {
             this.pos_ = 0.0;
           }

@@ -145,6 +145,14 @@
       if(v === this.value_) {
         return;
       }
+      this.move(v, 100);
+    },
+    /**
+     * @param {number} v
+     * @param {number} delay
+     */
+    move: function(v, delay) {
+      delay = delay | -1;
       this.value_ = v;
       var total = this.container_.clientWidth - this.button_.clientWidth;
       if(this.orientation_ > 0) {
@@ -154,14 +162,16 @@
         var off = total * (1 - (v / (this.max_ - this.min_)));
         this.button_.style.left = off + 'px';
       }
-      var self = this;
-      if(this.changedTimer_) {
-        window.clearTimeout(this.changedTimer_);
+      if(delay > 0) {
+        var self = this;
+        if(this.changedTimer_) {
+          window.clearTimeout(this.changedTimer_);
+        }
+        this.changedTimer_ = window.setTimeout(function(){
+          self.onChanged(v);
+          self.changedTimer_ = 0;
+        }, delay);
       }
-      this.changedTimer_ = window.setTimeout(function(){
-        self.onChanged(v);
-        self.changedTimer_ = 0;
-      }, 100);
     },
     /** @param {number} deactivateAfter */
     activate: function(deactivateAfter) {
