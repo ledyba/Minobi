@@ -1242,6 +1242,7 @@
         this.speed_ = 0;
         if(this.timer) {
           window.clearInterval(this.timer);
+          this.layoutFaces_(container);
         }
         if(duration <= 0.3 && Math.abs(speedXinEm) >= 20.0 && (speedXinEm > 0 && this.current_.nextPage || speedXinEm < 0)) {
           this.timer = window.setInterval(this.anim_.bind(this, speedXinEm > 0, cache, container), 20);
