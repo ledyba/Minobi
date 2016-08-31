@@ -177,6 +177,9 @@
      this.y_ = 0;
    };
    Minobi.Face.prototype = {
+     get attached() {
+       return !this.elem_ || !!this.elem_.parentElement;
+     },
      /**
       * @param {HTMLDivElement} container
       */
@@ -478,6 +481,8 @@
       // Mouse
       var firstMouseX = 0;
       var firstMouseY = 0;
+      var lastMouseX = 0;
+      var lastMouseY = 0;
       var mouseStart = 0;
       var mouseUp = function(event) {
         window.removeEventListener('mousemove', mouseMove);
@@ -503,7 +508,9 @@
       var mouseMove = function(event) {
         if(clicked) {
           event.preventDefault();
-          self.axis.onMove(self, event.movementX, event.movementY);
+          self.axis.onMove(self, event.clientX - lastMouseX, event.clientY - lastMouseY);
+          lastMouseX = event.clientX;
+          lastMouseY = event.clientY;
         }
       };
       var mouseDown = function(event) {
@@ -511,8 +518,8 @@
           event.preventDefault();
           clicked = true;
           self.axis.onMoveStart(self);
-          firstMouseX = event.clientX;
-          firstMouseY = event.clientY;
+          firstMouseX = lastMouseX = event.clientX;
+          firstMouseY = lastMouseY = event.clientY;
           mouseStart = event.timeStamp;
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
@@ -1133,6 +1140,12 @@
           } else {
             this.pos_ = 0.0;
           }
+        }
+        if(!this.current_.attached) {
+          this.current_.attach(container);
+        }
+        if(this.current_.next && !this.current_.next.attached) {
+          this.current_.next.attach(container);
         }
 
         // set opacity and scale for animation, then render faces.
