@@ -1243,7 +1243,7 @@
         if(this.timer) {
           window.clearInterval(this.timer);
         }
-        if(duration <= 0.3 && Math.abs(speedXinEm) >= 20.0 && (speedXinEm > 0 && this.current_.next || speedXinEm < 0 && this.current_.prev)) {
+        if(duration <= 0.3 && Math.abs(speedXinEm) >= 20.0 && (speedXinEm > 0 && this.current_.nextPage || speedXinEm < 0)) {
           this.timer = window.setInterval(this.anim_.bind(this, speedXinEm > 0, cache, container), 20);
         } else {
           this.timer = window.setInterval(this.move_.bind(this, cache, container), 20);
