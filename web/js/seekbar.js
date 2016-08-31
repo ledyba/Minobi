@@ -152,7 +152,7 @@
      * @param {number} delay
      */
     move: function(v, delay) {
-      delay = delay | -1;
+      delay = delay || -1;
       this.value_ = v;
       var total = this.container_.clientWidth - this.button_.clientWidth;
       if(this.orientation_ > 0) {
