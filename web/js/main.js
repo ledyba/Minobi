@@ -453,9 +453,6 @@
 
     //
     this.container_.classList.add('minobi');
-    //window.addEventListener('resize', function() {
-    //  this.render();
-    //}.bind(this));
 
     /** @type {SeekBar} seekbar_ */
     this.seekbar_ = null;
@@ -626,6 +623,15 @@
         self.container_.boundingTop_ = rect.top;
         self.seek(self.chapter.pages[0]);
         self.render();
+        window.addEventListener('resize', function() {
+          self.container_.clientWidth_ = self.container_.clientWidth;
+          self.container_.clientHeight_ = self.container_.clientHeight;
+          var rect = self.container_.getBoundingClientRect();
+          self.container_.boundingLeft_ = rect.left;
+          self.container_.boundingTop_ = rect.top;
+          self.seek(self.axis.currentPages[0]);
+          self.render();
+        });
       };
       var onLoad = function() {
         window.removeEventListener('load', onLoad);
@@ -858,6 +864,18 @@
       for(var i = 0; i < list.length; i++) {
         list[i].apply(null, args);
       }
+    },
+    /**
+     * @returns {Minobi.Page[]} pages
+     */
+    get currentPages() {
+      return [];
+    },
+    /**
+     * @returns {number[]} pages
+     */
+    get currentPageNumbers() {
+      return [];
     }
   };
 
@@ -1011,12 +1029,30 @@
        *
        */
       value: function() {
+        this.dispatchEvent_('pageenter', this.currentPageNumbers);
+      }
+    },
+    currentPages: {
+      configurable: false,
+      /**
+       * @returns {[number]}
+       */
+      get: function() {
+        return this.current_.pages;
+      },
+    },
+    currentPageNumbers: {
+      configurable: false,
+      /**
+       * @returns {[number]}
+       */
+      get: function() {
         var pages = [];
         for(var i = 0; i < this.current_.pages.length; i++) {
           pages.push(this.current_.pages[i].idx);
         }
-        this.dispatchEvent_('pageenter', pages);
-      }
+        return pages;
+      },
     },
     /**
      * @param {Minobi.Face} face
