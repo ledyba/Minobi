@@ -876,6 +876,10 @@
     this.speed_ = 0;
     /** @type {number} */
     this.timer = 0;
+    /** @type {[Minobi.Face]} */
+    this.attachQueue_ = [];
+    /** @type {[Minobi.Face]} */
+    this.detachQueue_ = [];
   };
 
   Minobi.HorizontalAxis.prototype = Object.create(Minobi.Axis.prototype, {
@@ -1014,6 +1018,39 @@
         this.dispatchEvent_('pageenter', pages);
       }
     },
+    /**
+     * @param {Minobi.Face} face
+     * @protected
+     */
+    addAttachQueue: {
+      value: function addAttachQueue(face) {
+        this.attachQueue_.push(face);
+      }
+    },
+    /**
+     * @param {Minobi.Face} face
+     */
+    addDetachQueue: {
+      value: function addDetachQueue(face) {
+        this.detachQueue_.push(face);
+      }
+    },
+    layoutFaces_: {
+      /**
+       * @param {HTMLDivElement} container
+       * @protected
+       */
+      value: function layoutFaces_(container) {
+        while(this.attachQueue_.length > 0) {
+          var face = this.attachQueue_.shift();
+          face.attach(container);
+        }
+        while(this.detachQueue_.length > 0) {
+          var face = this.detachQueue_.shift();
+          face.detach(container);
+        }
+      }
+    },
     render: {
       /**
        * @param {Minobi.ImageCache} cache
@@ -1022,11 +1059,11 @@
        */
       value: function render(cache, container) {
         // update faces pagination.
-        if(this.pos_ > 1) {
+        if(this.pos_ >= 1) {
           if(this.current_.nextPage) {
             this.pos_ -= 1.0;
             if(this.current_.prev) {
-              this.current_.prev.detach(container);
+              this.addDetachQueue(this.current_.prev);
               this.current_.unlinkPrev();
             }
             this.current_ = this.current_.next;
@@ -1034,7 +1071,7 @@
             this.current_.prev.zIndex = 0;
             if(this.current_.nextPage) {
               this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
-              this.current_.next.attach(container);
+              this.addAttachQueue(this.current_.next);
               this.current_.next.zIndex = 2;
             }
             this.dispatchPageEnterEvent();
@@ -1045,7 +1082,7 @@
           if(this.current_.prevPage) {
             this.pos_ += 1.0;
             if(this.current_.next) {
-              this.current_.next.detach(container);
+              this.addDetachQueue(this.current_.next);
               this.current_.unlinkNext();
             }
             this.current_ = this.current_.prev;
@@ -1053,7 +1090,7 @@
             this.current_.next.zIndex = 2;
             if(this.current_.prevPage) {
               this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
-              this.current_.prev.attach(container);
+              this.addAttachQueue(this.current_.prev);
               this.current_.prev.zIndex = 0;
             }
             this.dispatchPageEnterEvent();
@@ -1064,7 +1101,7 @@
 
         // set opacity and scale for animation, then render faces.
         this.current_.opacity = 1 - this.pos_;
-        this.current_.transform((1 - this.pos_)*0.25 + 0.75, 0, 0);
+        this.current_.transform((1 - this.pos_) * 0.25 + 0.75, 0, 0);
         this.current_.render(cache, container);
         if(this.current_.next) {
           this.current_.next.opacity = 1;
@@ -1195,19 +1232,25 @@
           this.speed_ -= 0.025;
           this.pos_ += this.speed_;
         }
+        var layout = false;
         if(this.pos_ <= 0) {
           this.pos_ = 0;
           this.speed_ = 0;
+          layout = true;
           window.clearInterval(this.timer);
           this.timer = 0;
         }
         if(this.pos_ >= 1) {
           this.pos_ = 1;
           this.speed_ = 0;
+          layout = true;
           window.clearInterval(this.timer);
           this.timer = 0;
         }
         this.render(cache, container);
+        if(layout) {
+          this.layoutFaces_(container);
+        }
       }
     },
     anim_: {
@@ -1224,19 +1267,25 @@
           this.speed_ -= 0.025;
           this.pos_ += this.speed_;
         }
+        var layout = false;
         if(this.pos_ <= 0) {
           this.pos_ = 0;
           this.speed_ = 0;
+          layout = true;
           window.clearInterval(this.timer);
           this.timer = 0;
         }
         if(this.pos_ >= 1) {
           this.pos_ = 1;
           this.speed_ = 0;
+          layout = true;
           window.clearInterval(this.timer);
           this.timer = 0;
         }
         this.render(cache, container);
+        if(layout) {
+          this.layoutFaces_(container);
+        }
       }
     }
   });
