@@ -481,6 +481,7 @@
       // Mouse
       var firstMouseX = 0;
       var firstMouseY = 0;
+      var mouseStart = 0;
       var mouseUp = function(event) {
         window.removeEventListener('mousemove', mouseMove);
         window.removeEventListener('mouseup', mouseUp);
@@ -490,10 +491,16 @@
           clicked = false;
           var dx = event.clientX - firstMouseX;
           var dy = event.clientY - firstMouseY;
+          var duration = ((event.timeStamp - mouseStart) / 1000);
+          var vx = (dx / self.emInPx_) / duration;
+          var vy = (dy / self.emInPx_) / duration;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
           self.axis.onMoveEnd(self, isTap,
             (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_,
-            (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_);
+            (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_,
+            duration,
+            vx,
+            vy);
         }
       };
       var mouseMove = function(event) {
@@ -509,6 +516,7 @@
           self.axis.onMoveStart(self);
           firstMouseX = event.clientX;
           firstMouseY = event.clientY;
+          mouseStart = event.timeStamp;
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
           window.addEventListener('mouseleave', mouseUp);
@@ -518,6 +526,7 @@
 
       // Touch
       var touch = null;
+      var touchStart = 0;
       var firstTouchX = 0;
       var firstTouchY = 0;
       var lastTouchX = 0;
@@ -534,6 +543,7 @@
           touch = event.targetTouches[0];
           firstTouchX = lastTouchX = touch.clientX;
           firstTouchY = lastTouchY = touch.clientY;
+          touchStart = event.timeStamp;
         }
       };
       var touchEnd = function(event) {
@@ -549,14 +559,21 @@
           var dx = lastTouchX - firstTouchX;
           var dy = lastTouchY - firstTouchY;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
+          var duration = (event.timeStamp - touchStart) / 1000;
+          var vx = (dx / self.emInPx_) / duration;
+          var vy = (dy / self.emInPx_) / duration;
           self.axis.onMoveEnd(self, isTap,
             (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_,
-            (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_);
+            (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_,
+            duration,
+            vx,
+            vy);
         }
         clicked = false;
         touch = null;
         firstTouchX = lastTouchX = 0;
         firstTouchY = lastTouchY = 0;
+        touchStart = 0;
       };
       lastMoved = new Date().getTime();
       var touchMove = function(event) {
@@ -779,8 +796,11 @@
      * @param {boolean} isTap
      * @param {number} lastRelX
      * @param {number} lastRelY
+     * @param {number} duration
+     * @param {number} speedXinEm
+     * @param {number} speedYinEm
      */
-    onMoveEnd: function(viewer, isTap, lastRelX, lastRelY) {
+    onMoveEnd: function(viewer, isTap, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
       return false;
     },
      /**
@@ -1126,23 +1146,33 @@
        * @param {boolean} isTap
        * @param {number} lastRelX
        * @param {number} lastRelY
-       * @override
+       * @param {number} duration
+       * @param {number} speedXinEm
+       * @param {number} speedYinEm
        */
-      value: function onMoveEnd(viewer, isTap, lastRelX, lastRelY) {
+      value: function onMoveEnd(viewer, isTap, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
         var cache = viewer.cache;
         var container = viewer.container;
         if(isTap) {
           if(lastRelX < 0.4 && this.current_.nextPage) {
             this.seek(cache, container, this.current_.nextPage);
             viewer.render();
+            return;
           } else if(lastRelX > 0.6 && this.current_.prevPage) {
             this.seekPrev(cache, container, this.current_.prevPage);
             viewer.render();
+            return;
           } else {
             viewer.seekbar.activate(1000);
           }
+        }
+        this.speed_ = 0;
+        if(this.timer) {
+          window.clearInterval(this.timer);
+        }
+        if(duration <= 0.3 && Math.abs(speedXinEm) >= 20.0 && (speedXinEm > 0 && this.current_.next || speedXinEm < 0 && this.current_.prev)) {
+          this.timer = window.setInterval(this.anim_.bind(this, speedXinEm > 0, cache, container), 20);
         } else {
-          this.speed_ = 0;
           this.timer = window.setInterval(this.move_.bind(this, cache, container), 20);
         }
       }
@@ -1162,6 +1192,35 @@
             this.pos_ += this.speed_;
           }
         } else {
+          this.speed_ -= 0.025;
+          this.pos_ += this.speed_;
+        }
+        if(this.pos_ <= 0) {
+          this.pos_ = 0;
+          this.speed_ = 0;
+          window.clearInterval(this.timer);
+          this.timer = 0;
+        }
+        if(this.pos_ >= 1) {
+          this.pos_ = 1;
+          this.speed_ = 0;
+          window.clearInterval(this.timer);
+          this.timer = 0;
+        }
+        this.render(cache, container);
+      }
+    },
+    anim_: {
+      /**
+       * @param {boolean} next
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
+       */
+      value: function move_(next, cache, container) {
+        if(next) {
+          this.speed_ += 0.025;
+          this.pos_ += this.speed_;
+        }else{
           this.speed_ -= 0.025;
           this.pos_ += this.speed_;
         }
