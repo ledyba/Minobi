@@ -420,7 +420,7 @@
             self.cache_.onLoaded(img, new Minobi.ImageEntity(dat));
           }else{
             console.error("We can't load file: ", img.url, xhr);
-            self.cache_.onError(this.xhr_.img);
+            self.cache_.onError(img);
           }
         }
       };
