@@ -1446,7 +1446,7 @@
    * @returns {Uint8Array} array
    */
   Minobi.decodeBase64 = function(str) {
-    var raw = window.atob(base64);
+    var raw = window.atob(str);
     var rawLength = raw.length;
     var array = new Uint8Array(new ArrayBuffer(rawLength));
     for(i = 0; i < rawLength; i++) {
