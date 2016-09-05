@@ -24,12 +24,14 @@
    * @param {string} url
    * @param {number} width
    * @param {number} height
+   * @param {Uint8Array} key
    * @constructor
    */
-  Minobi.Image = function(url, width, height) {
+  Minobi.Image = function(url, width, height, key) {
     this.url = url;
     this.width = width;
     this.height = height;
+    this.key = key || null;
     /** @type {Minobi.ImageEntity} */
     this.entity = null;
 
@@ -408,7 +410,14 @@
         if (xhr.readyState == 4) {
           self.xhr_ = null;
           if(xhr.status == 200) {
-            self.cache_.onLoaded(img, new Minobi.ImageEntity(new Uint8Array(xhr.response)));
+            var dat = new Uint8Array(xhr.response);
+            if(img.key) {
+              var n = img.key.length;
+              for(var i = 0; i < dat.length; i++) {
+                dat[i] ^= img.key[i % n];
+              }
+            }
+            self.cache_.onLoaded(img, new Minobi.ImageEntity(dat));
           }else{
             console.error("We can't load file: ", img.url, xhr);
             self.cache_.onError(this.xhr_.img);
@@ -1402,7 +1411,7 @@
 
   /**
    * @param {HTMLDivElement} container
-   * @param {[{images: [{path: string, width: number, height:number}], width: number, height:number}]} chapterDef
+   * @param {[{images: [{path: string, width: number, height:number, key: (undefined|string)}], width: number, height:number}]} chapterDef
    * @param {function(Minobi.Viewer)} clbk
    */
   Minobi.init = function(container, chapterDef, clbk) {
@@ -1414,7 +1423,12 @@
       var images = [];
       for(var j = 0; j < pageDef.images.length; j++) {
         var imgDef = pageDef.images[j];
-        var image = new Minobi.Image(imgDef.path, imgDef.width, imgDef.height);
+        var key = null;
+        if(imgDef.key) {
+          key = Minobi.decodeBase64(imgDef.key);
+        }
+        imgDef.key
+        var image = new Minobi.Image(imgDef.path, imgDef.width, imgDef.height, key);
         images.push(image);
       }
       var page = new Minobi.Page(i, images, pageDef.width, pageDef.height);
@@ -1426,5 +1440,18 @@
     }
     var viewer = new Minobi.Viewer(container, new Minobi.Chapter(pages));
     viewer.init(clbk);
+  };
+  /**
+   * @param {string} str
+   * @returns {Uint8Array} array
+   */
+  Minobi.decodeBase64 = function(str) {
+    var raw = window.atob(base64);
+    var rawLength = raw.length;
+    var array = new Uint8Array(new ArrayBuffer(rawLength));
+    for(i = 0; i < rawLength; i++) {
+      array[i] = raw.charCodeAt(i);
+    }
+    return array;
   };
 })();
