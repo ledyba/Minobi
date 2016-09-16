@@ -48,6 +48,18 @@ body {
   opacity: 0.5;
 }
 
+.minobi-seekbar-bar {
+  background-color: white;
+  opacity: 0.7;
+  position: absolute;
+  overflow: hidden;
+  left: 1.5em;
+  right: 1.5em;
+  bottom: 1.0em;
+  top: 1.0em;
+  z-index: 101;
+}
+
 .minobi-seekbar-button {
   width: 3em;
   height: 3em;
@@ -57,7 +69,8 @@ body {
   overflow: hidden;
   left: 0px;
   bottom: 0px;
-  z-index: 101;
+  z-index: 102;
+  border-radius: 50%;
 }
 
 /* minobi core */
