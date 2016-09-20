@@ -545,11 +545,11 @@
       var lastTouchX = 0;
       var lastTouchY = 0;
       var touchStart = function(event) {
-        if(!clicked && !!event.targetTouches[0]) {
-          event.preventDefault();
+        if(!clicked && !!event.targetTouches[0] && event.touches.length == 1) {
+          //event.preventDefault();
           clicked = true;
           self.axis.onMoveStart(self);
-          window.addEventListener('touchmove', touchMove, {passive: true});
+          window.addEventListener('touchmove', touchMove, false);
           window.addEventListener('touchend', touchEnd, false);
           window.addEventListener('touchleave', touchEnd, false);
           window.addEventListener('touchcancel', touchEnd, false);
@@ -557,6 +557,8 @@
           firstTouchX = lastTouchX = touch.clientX;
           firstTouchY = lastTouchY = touch.clientY;
           touchStart = event.timeStamp;
+        } else if(event.touches.length > 1){
+          clicked = false;
         }
       };
       var touchEnd = function(event) {
@@ -593,6 +595,7 @@
         if(!clicked) {
           return;
         }
+        event.preventDefault();
         var now = new Date().getTime();
         if(now - lastMoved < 10) {
           return;
@@ -607,7 +610,7 @@
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
       };
-      this.container_.addEventListener('touchstart', touchStart, false);
+      this.container_.addEventListener('touchstart', touchStart, {passive: true});
 
       // keyboard
       this.container_.addEventListener('keyup', function(event) {
