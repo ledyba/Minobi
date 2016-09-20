@@ -678,7 +678,7 @@
       var self = this;
       /** @param {number} value */
       seekbar.onChanged = function(value) {
-        self.seek(self.chapter.pages[value]);
+        self.seek(self.chapter.pages[value-1]);
         self.render();
       };
       this.seekbar_ = seekbar;
@@ -727,7 +727,7 @@
         for(var i = 0; i < listeners.length; i++) {
           listeners[i](pages);
         }
-        this.seekbar.move(pages[0]);
+        this.seekbar.move(pages[0]+1);
       }
     },
     get seekbar() {

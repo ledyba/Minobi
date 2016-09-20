@@ -158,10 +158,10 @@
       this.updateValue(v);
       var total = this.container_.clientWidth - this.button_.clientWidth;
       if(this.orientation_ > 0) {
-        var off = total * v / (this.max_ - this.min_);
+        var off = total * (v - this.min_) / (this.max_ - this.min_);
         this.button_.style.left = off + 'px';
       } else {
-        var off = total * (1 - (v / (this.max_ - this.min_)));
+        var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
         this.button_.style.left = off + 'px';
       }
       if(delay > 0) {
