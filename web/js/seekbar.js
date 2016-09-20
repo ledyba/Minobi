@@ -8,11 +8,13 @@
    * @param {number} hideDelay
    * @constructor
    */
-  var SeekBar = function(container, button, min, max, step, orientation, hideDelay) {
+  var SeekBar = function(container, button, pagecounter, min, max, step, orientation, hideDelay) {
     /** @type {HTMLDivElement} container_ */
     this.container_ = container;
     /** @type {HTMLDivElement} button_ */
     this.button_ = button;
+    /** @type {HTMLDivElement} pagecounter_ */
+    this.pagecounter_ = pagecounter;
 
     /** @type {number} min_ */
     this.min_ = min;
@@ -142,7 +144,7 @@
     set value(v) {
       v = Math.round(v / this.step_) * this.step_;
       v = Math.min(this.max_, Math.max(this.min_, v));
-      if(v === this.value_) {
+      if(!this.updateValue(v)) {
         return;
       }
       this.move(v, 100);
@@ -153,7 +155,7 @@
      */
     move: function(v, delay) {
       delay = delay || -1;
-      this.value_ = v;
+      this.updateValue(v);
       var total = this.container_.clientWidth - this.button_.clientWidth;
       if(this.orientation_ > 0) {
         var off = total * v / (this.max_ - this.min_);
@@ -172,6 +174,15 @@
           self.changedTimer_ = 0;
         }, delay);
       }
+    },
+    /** @param {number} v */
+    updateValue: function(v) {
+      if(v === this.value_) {
+        return false;
+      }
+      this.value_ = v;
+      this.pagecounter_.innerText = v + ' / ' + this.max_;
+      return true;
     },
     /** @param {number} deactivateAfter */
     activate: function(deactivateAfter) {

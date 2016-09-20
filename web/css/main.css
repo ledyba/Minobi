@@ -17,7 +17,7 @@ body {
   width: 80%;
   height: 3em;
   position: absolute;
-  overflow: hidden;
+  overflow: visible;
   left: 10%;
   bottom: 0px;
   z-index: 100;
@@ -71,6 +71,22 @@ body {
   bottom: 0px;
   z-index: 102;
   border-radius: 50%;
+}
+
+.minobi-seekbar-pagecounter {
+  width: 5em;
+  height: 1.4em;
+  text-align: center;
+  background-color: white;
+  opacity: 0.7;
+  position: absolute;
+  overflow: hidden;
+  margin-right: auto;
+  margin-left: auto;
+  color: black;
+  top: -2em;
+  z-index: 102;
+  border-radius: 0.3em;
 }
 
 /* minobi core */

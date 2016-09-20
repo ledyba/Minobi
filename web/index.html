@@ -16,6 +16,7 @@
   <div class="minobi-parent">
     <div id="minobi" tabindex="1"></div>
     <div id="minobi-seekbar" class="minobi-seekbar">
+      <div id="minobi-seekbar-pagecounter" class="minobi-seekbar-pagecounter"></div>
       <div class="minobi-seekbar-background"></div>
       <div class="minobi-seekbar-bar"></div>
       <div id="minobi-seekbar-button" class="minobi-seekbar-button"></div>
@@ -29,6 +30,7 @@
       var seekbar = new SeekBar(
         document.getElementById("minobi-seekbar"),
         document.getElementById("minobi-seekbar-button"),
+        document.getElementById("minobi-seekbar-pagecounter"),
         0,
         chapter.length - 1,
         1,
