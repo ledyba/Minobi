@@ -633,24 +633,23 @@
           this.render();
         }
       }.bind(this));
-      var onDomContentLoaded = function(){
-        window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
+      /**
+        * @param {number} page
+        */
+      var onRisize = function(page) {
         self.container_.clientWidth_ = self.container_.clientWidth;
         self.container_.clientHeight_ = self.container_.clientHeight;
         var rect = self.container_.getBoundingClientRect();
         self.container_.boundingLeft_ = rect.left;
         self.container_.boundingTop_ = rect.top;
-        self.seek(self.chapter.pages[0]);
+        self.axis.onResize(self, self.container_);
+        self.seek((page !== undefined || page !== null) ? self.chapter.pages[0] : self.axis.currentPages[0]);
         self.render();
-        window.addEventListener('resize', function() {
-          self.container_.clientWidth_ = self.container_.clientWidth;
-          self.container_.clientHeight_ = self.container_.clientHeight;
-          var rect = self.container_.getBoundingClientRect();
-          self.container_.boundingLeft_ = rect.left;
-          self.container_.boundingTop_ = rect.top;
-          self.seek(self.axis.currentPages[0]);
-          self.render();
-        });
+      };
+      var onDomContentLoaded = function(){
+        window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
+        window.addEventListener('resize', onRisize);
+        onRisize(0);
       };
       var onLoad = function() {
         window.removeEventListener('load', onLoad);
@@ -815,6 +814,13 @@
      */
     onMove: function(viewer, dx, dy) {
       return false;
+    },
+    /**
+     * @param {Minobi.Viewer} viewer
+     * @param {HTMLDivElement} container
+     */
+    onResize: function(viewer, container) {
+
     },
     /**
      * @param {Minobi.Viewer} viewer
@@ -1173,6 +1179,14 @@
           this.current_.prev.opacity = 0;
           this.current_.prev.render(cache, container);
         }
+      }
+    },
+    onResize: {
+      /**
+       * @param {Minobi.Viewer} viewer
+       * @param {HTMLDivElement} container
+       */
+      value: function(viewer, container) {
       }
     },
     onLeft: {
