@@ -636,7 +636,7 @@
       /**
         * @param {number} pageNum
         */
-      var onRisize = function(page) {
+      var onRisize = function(pageNum) {
         self.container_.clientWidth_ = self.container_.clientWidth;
         self.container_.clientHeight_ = self.container_.clientHeight;
         var rect = self.container_.getBoundingClientRect();
