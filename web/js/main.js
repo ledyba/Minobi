@@ -634,7 +634,7 @@
         }
       }.bind(this));
       /**
-        * @param {number} page
+        * @param {number} pageNum
         */
       var onRisize = function(page) {
         self.container_.clientWidth_ = self.container_.clientWidth;
@@ -643,7 +643,10 @@
         self.container_.boundingLeft_ = rect.left;
         self.container_.boundingTop_ = rect.top;
         self.axis.onResize(self, self.container_);
-        self.seek((page !== undefined || page !== null) ? self.chapter.pages[0] : self.axis.currentPages[0]);
+        self.seek(
+            (pageNum !== undefined || pageNum !== null) ?
+              self.chapter.pages[pageNum] :
+              self.axis.currentPages[0]);
         self.render();
       };
       var onDomContentLoaded = function(){
