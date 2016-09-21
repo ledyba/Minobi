@@ -317,8 +317,11 @@
     /** @type {Object.<string, boolean>} this.xhr_ */
     this.enqueued_ = {};
   };
-  Minobi.ImageCache.MAX_IMAGE = 10;
-  Minobi.ImageCache.MAX_WORKER = 5;
+  Minobi.ImageCache.MAX_IMAGE = 20;
+  // We need more than or equal to 6 workers
+  // because we need 6 images at once.
+  // 3 faces (Prev/Current/Next) * 2 images(for each pages)
+  Minobi.ImageCache.MAX_WORKER = 6;
 
   Minobi.ImageCache.prototype = {
     /**
