@@ -35,6 +35,9 @@
 
     /** @type {number} disableTimer_ */
     this.hideTimer_ = 0;
+
+    /** @type {[number]} seekablePages */
+    this.seekablePages_ = null;
   };
   SeekBar.prototype = {
     /** @param {number} v */
@@ -142,28 +145,57 @@
     changedTimer_: 0,
     /** @param {number} v */
     set value(v) {
+      this.move(v, 100);
+    },
+    /** @param {[number]} v */
+    set seekablePages(v) {
+      this.seekablePages_ = v;
+      if(v && v.length > 0) {
+        this.move(this.value_, 30);
+      }
+    },
+    /** @type {[number]} seekablePages */
+    get seekablePages() {
+      return this.seekablePages_;
+    },
+    /**
+      * @param {number} v
+      * @returns {number}
+      */
+    toSeekableValue: function(v) {
       v = Math.round(v / this.step_) * this.step_;
       v = Math.min(this.max_, Math.max(this.min_, v));
-      if(!this.updateValue(v)) {
-        return;
+      if(!this.seekablePages_ || this.seekablePages.length === 0){
+        return v;
       }
-      this.move(v, 100);
+      var w = this.seekablePages[0];
+      for(var i = 1; i < this.seekablePages_.length; i++) {
+        if(this.seekablePages[i] > v) {
+          break;
+        }
+        w = this.seekablePages[i];
+      }
+      return w;
     },
     /**
      * @param {number} v
      * @param {number} delay
+     * @param {boolean} reload
      */
-    move: function(v, delay) {
-      delay = delay || -1;
-      this.updateValue(v);
-      var total = this.container_.clientWidth - this.button_.clientWidth;
-      if(this.orientation_ > 0) {
-        var off = total * (v - this.min_) / (this.max_ - this.min_);
-        this.button_.style.left = off + 'px';
-      } else {
-        var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
-        this.button_.style.left = off + 'px';
+    move: function(v, delay, reload) {
+      this.move_(this.toSeekableValue(v), delay, reload);
+    },
+    /**
+     * @param {number} v
+     * @param {number} delay
+     * @param {boolean} reload
+     */
+    move_: function(v, delay, reload) {
+      if(delay === undefined || delay === null) delay = -1;
+      if(!this.updateValue(v) && !reload) {
+        return;
       }
+      this.moveSeekbar_(v);
       if(delay > 0) {
         var self = this;
         if(this.changedTimer_) {
@@ -173,6 +205,17 @@
           self.onChanged(v);
           self.changedTimer_ = 0;
         }, delay);
+      }
+    },
+    /** @param {number} v */
+    moveSeekbar_: function(v) {
+      var total = this.container_.clientWidth - this.button_.clientWidth;
+      if(this.orientation_ > 0) {
+        var off = total * (v - this.min_) / (this.max_ - this.min_);
+        this.button_.style.left = off + 'px';
+      } else {
+        var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
+        this.button_.style.left = off + 'px';
       }
     },
     /** @param {number} v */

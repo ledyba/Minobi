@@ -645,16 +645,16 @@
         var rect = self.container_.getBoundingClientRect();
         self.container_.boundingLeft_ = rect.left;
         self.container_.boundingTop_ = rect.top;
+        var nextPage =
+            (pageNum !== undefined && pageNum !== null) ?
+              pageNum :
+              self.axis.currentPages[0].idx;
         self.axis.onResize(self, self.container_);
-        self.seek(
-            (pageNum !== undefined || pageNum !== null) ?
-              self.chapter.pages[pageNum] :
-              self.axis.currentPages[0]);
-        self.render();
+        self.seekbar.move(nextPage + 1, 30, true);
       };
       var onDomContentLoaded = function(){
         window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
-        window.addEventListener('resize', onRisize);
+        window.addEventListener('resize', onRisize.bind(null, null));
         onRisize(0);
       };
       var onLoad = function() {
@@ -1193,6 +1193,25 @@
        * @param {HTMLDivElement} container
        */
       value: function(viewer, container) {
+        /** @type {number} viewerWidth */
+        var viewerWidth = container.clientWidth_;
+        // Calculate seekable pages.
+        /** @type {[number]} */
+        var seekable = [];
+        for(var i = 0; i < viewer.chapter.pages.length; i++) {
+          var page = viewer.chapter.pages[i];
+          var next = viewer.chapter.pages[i+1];
+          seekable.push(i+1);
+          if(undefined === next) {
+            break;
+          }
+          var sp = this.calcScale_(container, page);
+          var sn = this.calcScale_(container, next);
+          if(sp * page.width + sn * next.width <= viewerWidth) {
+            i++;
+          }
+        }
+        viewer.seekbar.seekablePages = seekable;
       }
     },
     onLeft: {
