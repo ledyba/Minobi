@@ -636,26 +636,22 @@
           this.render();
         }
       }.bind(this));
-      /**
-        * @param {number} pageNum
-        */
-      var onRisize = function(pageNum) {
+      var setupSize = function() {
         self.container_.clientWidth_ = self.container_.clientWidth;
         self.container_.clientHeight_ = self.container_.clientHeight;
         var rect = self.container_.getBoundingClientRect();
         self.container_.boundingLeft_ = rect.left;
         self.container_.boundingTop_ = rect.top;
-        var nextPage =
-            (pageNum !== undefined && pageNum !== null) ?
-              pageNum :
-              self.axis.currentPages[0].idx;
         self.axis.onResize(self, self.container_);
-        self.seekbar.move(nextPage + 1, 30, true);
       };
       var onDomContentLoaded = function(){
         window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
-        window.addEventListener('resize', onRisize.bind(null, null));
-        onRisize(0);
+        window.addEventListener('resize', function() {
+          setupSize();
+          self.seekbar.move(self.axis.currentPages[0].idx + 1, 30, true);
+        });
+        setupSize();
+        self.seekbar.move(1, 0, true);
       };
       var onLoad = function() {
         window.removeEventListener('load', onLoad);
@@ -830,7 +826,7 @@
     },
     /**
      * @param {Minobi.Viewer} viewer
-     * @param {boolean} isTap
+     * @param {boolean}
      * @param {number} lastRelX
      * @param {number} lastRelY
      * @param {number} duration

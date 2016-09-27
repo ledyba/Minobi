@@ -196,8 +196,8 @@
         return;
       }
       this.moveSeekbar_(v);
+      var self = this;
       if(delay > 0) {
-        var self = this;
         if(this.changedTimer_) {
           window.clearTimeout(this.changedTimer_);
         }
@@ -205,6 +205,8 @@
           self.onChanged(v);
           self.changedTimer_ = 0;
         }, delay);
+      } else {
+        self.onChanged(v);
       }
     },
     /** @param {number} v */
