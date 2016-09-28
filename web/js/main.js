@@ -964,6 +964,8 @@
           this.timer = 0;
         }
         this.dispatchPageEnterEvent();
+        this.attachQueue_.splice(0, this.attachQueue_.length);
+        this.detachQueue_.splice(0, this.detachQueue_.length);
       }
     },
     seekPrev: {
@@ -994,6 +996,8 @@
         this.pos_ = 0;
         this.speed_ = 0;
         this.dispatchPageEnterEvent();
+        this.attachQueue_.splice(0, this.attachQueue_.length);
+        this.detachQueue_.splice(0, this.detachQueue_.length);
       }
     },
     makeFace_: {

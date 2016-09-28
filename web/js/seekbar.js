@@ -205,7 +205,7 @@
           self.onChanged(v);
           self.changedTimer_ = 0;
         }, delay);
-      } else {
+      } else if(delay >= 0) {
         self.onChanged(v);
       }
     },
