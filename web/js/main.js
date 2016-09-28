@@ -177,6 +177,10 @@
 
      this.x_ = 0;
      this.y_ = 0;
+
+     this.zIndex_ = 0;
+
+     this.active_ = false;
    };
    Minobi.Face.prototype = {
      get attached() {
@@ -216,7 +220,23 @@
      },
      /** @param {number} index */
      set zIndex(index) {
+       if(index === this.zIndex_) {
+         return;
+       }
+       this.zIndex_ = index;
        this.elem_.style.zIndex = index;
+     },
+     /** @param {boolean} active */
+     set active(active) {
+       if(active === this.active_) {
+         return;
+       }
+       this.active_ = active;
+       if(active) {
+         this.elem_.classList.add('active');
+       } else {
+         this.elem_.classList.remove('active');
+       }
      },
      transform: function(scale, dx, dy) {
        this.scale_ = scale;
@@ -968,6 +988,7 @@
         //
         this.current_ = this.makeFace_(container, page);
         this.current_.attach(container);
+        this.current_.active = true;
         if(this.current_.nextPage) {
           this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
           this.current_.next.attach(container);
@@ -1004,6 +1025,7 @@
         }
         this.current_ = this.makePrevFace_(container, page);
         this.current_.attach(container);
+        this.current_.active = true;
         if(this.current_.nextPage) {
           this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
           this.current_.next.attach(container);
@@ -1153,8 +1175,13 @@
               this.current_.unlinkPrev();
             }
             this.current_ = this.current_.next;
+
             this.current_.zIndex = 1;
+            this.current_.active = true;
+
             this.current_.prev.zIndex = 0;
+            this.current_.prev.active = false;
+
             if(this.current_.nextPage) {
               this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
               this.addAttachQueue(this.current_.next);
@@ -1172,8 +1199,13 @@
               this.current_.unlinkNext();
             }
             this.current_ = this.current_.prev;
+
             this.current_.zIndex = 1;
+            this.current_.active = true;
+
             this.current_.next.zIndex = 2;
+            this.current_.active = false;
+
             if(this.current_.prevPage) {
               this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
               this.addAttachQueue(this.current_.prev);
