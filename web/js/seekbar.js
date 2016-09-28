@@ -38,6 +38,19 @@
 
     /** @type {[number]} seekablePages */
     this.seekablePages_ = null;
+
+    /** @type {Object.<string, [function()]>} */
+    this.listeners_ = {};
+    this.listeners_['activated'] = [];
+    this.listeners_['deactivated'] = [];
+
+    /**
+     * @type {number} activePeriod
+     * [ms]. Seekbar will be deactivated after this period. If you set this to 0,
+     * seekbar won't be deactivated.
+     * @public
+     */
+    this.activePeriod = 1000;
   };
   SeekBar.prototype = {
     /** @param {number} v */
@@ -47,12 +60,12 @@
       /** @type {number} value */
       this.value = v;
 
-      /* hide seekbar after 1000 ms */
+      /* hide seekbar after [this.activePeriod] */
       var hideBar = this.deactivate.bind(this);
       var showBar = this.activate.bind(this, 0);
-      self.deactivateAfter(1000);
+      self.deactivateAfter(this.activePeriod);
       this.container_.addEventListener('mouseenter', showBar);
-      this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, 1000));
+      this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, this.activePeriod));
 
       /* slide event(mouse) */
       var clicked = false;
@@ -112,7 +125,7 @@
           var v = (self.orientation_ > 0 ? calcPos(touch) : (1-calcPos(touch))) * (self.max_ - self.min_) + self.min_;
           self.value = v;
           clicked = false;
-          self.deactivateAfter(1000);
+          self.deactivateAfter(this.activePeriod);
         }
         touch = null;
       };
@@ -137,6 +150,56 @@
         self.value = v;
       };
       this.button_.addEventListener('touchstart', touchStart, false);
+    },
+    /**
+     * @param {string} name
+     * @param {function} clbk
+     */
+    addEventListener: function(name, clbk) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      if(list.indexOf(clbk) >= 0) {
+        console.warn("The given listener was already registered.");
+        return;
+      }
+      list.push(clbk);
+    },
+    /**
+     * @param {string} name
+     * @param {function} clbk
+     */
+    removeEventListener: function(name, clbk) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      var idx = list.indexOf(clbk);
+      if(idx < 0) {
+        console.warn("The given listener was not registered.");
+        return;
+      }
+      list.splice(idx, 1);
+    },
+    /**
+     * @param {string} name
+     * @protected
+     */
+    dispatchEvent_: function(name) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      var args = [];
+      Array.prototype.push.apply(args, arguments);
+      args.shift();
+      for(var i = 0; i < list.length; i++) {
+        list[i].apply(null, args);
+      }
     },
     /** @returns {number} value */
     get value() {
@@ -239,6 +302,7 @@
       if(deactivateAfter) {
         this.deactivateAfter(deactivateAfter);
       }
+      this.dispatchEvent_('activated', this);
     },
     deactivate: function() {
       if(this.hideTimer_) {
@@ -246,6 +310,7 @@
         this.hideTimer_ = 0;
       }
       this.container_.classList.add('hidden');
+      this.dispatchEvent_('deactivated', this);
     },
     /** @param {number} delayMs */
     deactivateAfter: function(delayMs) {
