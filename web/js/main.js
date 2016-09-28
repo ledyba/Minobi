@@ -480,6 +480,22 @@
     /** @type {Object.<string, [function()]>} */
     this.listeners_ = {};
     this.listeners_['pageenter'] = [];
+
+    /**
+     * @type {number} transitionAreaRatioForTouch
+     * [non-dimension] MUST BE IN [0, 0.5]
+     * Tap actions will be treated as page transition actions
+     * when the user released their finger in this range from left/right.
+     */
+    this.transitionAreaRatioForTouch = 0.35;
+
+    /**
+     * @type {number} transitionAreaRatioForTouch
+     * [non-dimension] MUST BE IN [0, 0.5]
+     * Click actions will be treated as page transition actions
+     * when the user released their cursor in this range from left/right.
+     */
+    this.transitionAreaRatioForMouse = 0.35;
   };
 
   Minobi.Viewer.prototype = {
@@ -510,6 +526,7 @@
           var vy = (dy / self.emInPx_) / duration;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
           self.axis.onMoveEnd(self, isTap,
+            self.transitionAreaRatioForMouse,
             (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_,
             (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_,
             duration,
@@ -581,6 +598,7 @@
           var vx = (dx / self.emInPx_) / duration;
           var vy = (dy / self.emInPx_) / duration;
           self.axis.onMoveEnd(self, isTap,
+            self.transitionAreaRatioForTouch,
             (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_,
             (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_,
             duration,
@@ -826,14 +844,15 @@
     },
     /**
      * @param {Minobi.Viewer} viewer
-     * @param {boolean}
+     * @param {boolean} isTap
+     * @param {number} transitionArea
      * @param {number} lastRelX
      * @param {number} lastRelY
      * @param {number} duration
      * @param {number} speedXinEm
      * @param {number} speedYinEm
      */
-    onMoveEnd: function(viewer, isTap, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
+    onMoveEnd: function(viewer, isTap, transitionArea, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
       return false;
     },
      /**
@@ -1270,7 +1289,7 @@
        * @param {Minobi.Viewer} viewer
        * @override
        */
-      value: function onMoveEnd(viewer) {
+      value: function onMoveStart(viewer) {
         if(this.timer) {
           window.clearInterval(this.timer);
           this.timer = 0;
@@ -1281,26 +1300,29 @@
       /**
        * @param {Minobi.Viewer} viewer
        * @param {boolean} isTap
+       * @param {number} transitionArea
        * @param {number} lastRelX
        * @param {number} lastRelY
        * @param {number} duration
        * @param {number} speedXinEm
        * @param {number} speedYinEm
+       * @override
        */
-      value: function onMoveEnd(viewer, isTap, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
+      value: function onMoveEnd(viewer, isTap, transitionArea, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
         var cache = viewer.cache;
         var container = viewer.container;
         if(isTap) {
-          if(lastRelX < 0.4 && this.current_.nextPage) {
+          if(lastRelX < transitionArea && this.current_.nextPage) {
             this.seek(cache, container, this.current_.nextPage);
             viewer.render();
             return;
-          } else if(lastRelX > 0.6 && this.current_.prevPage) {
+          } else if(lastRelX > (1 - transitionArea) && this.current_.prevPage) {
             this.seekPrev(cache, container, this.current_.prevPage);
             viewer.render();
             return;
           } else {
-            viewer.seekbar.activate(1000);
+            viewer.seekbar.activate(viewer.seekbar.activePeriod);
+            // do not return, since the page might be moved by fingers/mouse pointers.
           }
         }
         this.speed_ = 0;

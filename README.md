@@ -21,7 +21,7 @@ Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html
 
 ###Viewer
 
-#### PageEnter
+#### pageenter
 
 This event will be fired when a user enter pages. The 'pages' argument is a list of page numbers, and it may consist of more than one page numbers, since Minobi displays more than one pages in the screen if applicable.
 
@@ -43,7 +43,7 @@ Minobi.init(document.getElementById("minobi"), chapter, function(viewer) {
 
 ### Seekbar
 
-#### Activaton & deactivation
+#### activated/deactivated
 
 This event will be fired when a seekbar is activated or deactivated.
 
@@ -58,11 +58,36 @@ seekbar.addEventListener('deactivated', function(){
 });
 ```
 
-## Customize behaviour
+## Customizing behaviour
+
+### Viewer
+
+#### transitionAreaRatio
+
+```js
+var viewer = new Minobi.Viewer(/*...*/);
+/**
+ * @type {number} transitionAreaRatioForTouch
+ * [non-dimension] MUST BE IN [0, 0.5]
+ * Tap actions will be treated as page transition actions
+ * when the user released their finger in this range from left/right.
+ */
+viewer.transitionAreaRatioForTouch = 0.35;
+
+/**
+ * @type {number} transitionAreaRatioForTouch
+ * [non-dimension] MUST BE IN [0, 0.5]
+ * Click actions will be treated as page transition actions
+ * when the user released their cursor in this range from left/right.
+ */
+viewer.transitionAreaRatioForMouse = 0.35;
+
+```
+
 
 ### Seekbar
 
-#### Activation Period
+#### activationPeriod
 
 A seekbar will automatically disappear after this period.
 
