@@ -555,7 +555,7 @@
           window.addEventListener('mouseleave', mouseUp);
         }
       };
-      this.container_.addEventListener('mousedown', mouseDown);
+      this.container_.addEventListener('mousedown', mouseDown, false);
 
       // Touch
       var touch = null;

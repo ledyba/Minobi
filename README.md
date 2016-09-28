@@ -51,7 +51,7 @@ This event will be fired when a seekbar is activated or deactivated.
 var seekbar = new Minobi.Seekbar(/* ... */);
 
 seekbar.addEventListener('activated', function(){
-  console.log("seekbar actiated");
+  console.log("seekbar activated");
 });
 seekbar.addEventListener('deactivated', function(){
   console.log("seekbar deactivated");
