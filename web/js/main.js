@@ -429,7 +429,10 @@
       // TODO: [workaround]
       // Data URI has the different origin from http/https scheme uri,
       // So sending xhr is prohibited in iOS Safari.
-      if(img.url.startsWith('data:')) {
+      // XXX: [workaround]
+      // IE never supports String.prototype.startsWith
+      // https://msdn.microsoft.com/library/mt146831(v=vs.94).aspx
+      if(img.url.indexOf('data:', 0) === 0) {
         var arr = img.url.split(',');
         var meta = arr[0].match(/:([^;]*?)(?:;(.*?))?$/);
         var mime = meta[1];
@@ -455,7 +458,6 @@
       }
       var xhr = new XMLHttpRequest();
       xhr.img = img;
-      xhr.responseType = "arraybuffer";
       xhr.onreadystatechange = function onReadyStateChange() {
         if (xhr.readyState == 4) {
           self.xhr_ = null;
@@ -473,6 +475,10 @@
         }
       };
       xhr.open('GET', img.url, true);
+      // XXX: [workaround]
+      // IE11 throws an InvalidStateError when you set responseType before open
+      // https://github.com/chafey/cornerstoneWebImageLoader/issues/7
+      xhr.responseType = "arraybuffer";
       xhr.send(null);
       this.xhr_ = xhr;
     }
