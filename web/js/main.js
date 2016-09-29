@@ -420,6 +420,33 @@
      */
     load: function(img) {
       var self = this;
+      var decode = function(dat) {
+        var n = img.key.length;
+        for(var i = 0; i < dat.length; i++) {
+          dat[i] ^= img.key[i % n];
+        }
+      };
+      // TODO: [workaround]
+      // Data URI has the different origin from http/https scheme uri,
+      // So sending xhr is prohibited in iOS Safari.
+      if(img.url.startsWith('data:')) {
+        var arr = img.url.split(',');
+        var meta = arr[0].match(/:([^;]*?)(?:;(.*?))?$/);
+        var mime = meta[1];
+        var encoding = meta[2];
+        if(encoding !== 'base64') {
+          console.error("Minobi do not support non-base64 data uris: ", img.url, xhr);
+          self.cache_.onError(img);
+          return;
+        }
+        var dat = Minobi.decodeBase64(arr[1]);
+        var type = meta[2];
+        if(img.key) {
+          decode(dat);
+        }
+        self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
+        return;
+      }
       if(this.xhr_) {
         console.warn("Request aborted: ", this.xhr_.img.url);
         this.xhr_.onreadystatechange = null;
@@ -434,13 +461,11 @@
           self.xhr_ = null;
           if(xhr.status == 200) {
             var dat = new Uint8Array(xhr.response);
+            var type = xhr.getResponseHeader("Content-Type");
             if(img.key) {
-              var n = img.key.length;
-              for(var i = 0; i < dat.length; i++) {
-                dat[i] ^= img.key[i % n];
-              }
+              decode(dat);
             }
-            self.cache_.onLoaded(img, new Minobi.ImageEntity(dat));
+            self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
           }else{
             console.error("We can't load file: ", img.url, xhr);
             self.cache_.onError(img);
@@ -454,11 +479,12 @@
   };
   /**
    * @param {Uint8Array} data
+   * @param {string} type
    * @constructor
    */
-  Minobi.ImageEntity = function(data) {
+  Minobi.ImageEntity = function(data, type) {
     /** @type {string} */
-    this.url = URL.createObjectURL(new Blob([data], {type: 'image/webp'}));
+    this.url = URL.createObjectURL(new Blob([data], {type: type}));
   };
   Minobi.ImageEntity.prototype = {
     delete: function() {
