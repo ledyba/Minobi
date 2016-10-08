@@ -663,7 +663,7 @@
         firstTouchY = lastTouchY = 0;
         touchStart = 0;
       };
-      lastMoved = new Date().getTime();
+      var lastMoved = new Date().getTime();
       var touchMove = function(event) {
         if(!clicked) {
           return;
@@ -1577,7 +1577,7 @@
     var raw = window.atob(str);
     var rawLength = raw.length;
     var array = new Uint8Array(new ArrayBuffer(rawLength));
-    for(i = 0; i < rawLength; i++) {
+    for(var i = 0; i < rawLength; i++) {
       array[i] = raw.charCodeAt(i);
     }
     return array;
