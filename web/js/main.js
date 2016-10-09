@@ -2,6 +2,88 @@
   var Minobi = {};
 
   /**
+   * @param {string} id
+   * @constructor
+   */
+  Minobi.Tracker = function(id) {
+    this.id_ = id;
+    this.name_ = 'Minobi_'+Math.random().toString(36).slice(-8);
+    this.cmd_ = this.name_ + '.' + 'send';
+    window.ga('create', id, 'auto', this.name_);
+  };
+  Minobi.Tracker.prototype = {
+    send: function track() {
+      if(window.ga) {
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift(this.cmd_);
+        window.ga.apply(null, args);
+      }
+    },
+    /**
+     * @param {[number]} pages
+     */
+    pageview: function pageview(pages) {
+      /* global location */
+      if(pages) {
+        for(var i = 0; i < pages.length; i++) {
+          var path = location.href + "#" + pages[i];
+          this.send({
+            hitType: 'pageview',
+            location: path
+          });
+        }
+      } else {
+        this.send({
+          hitType: 'pageview',
+          location: location.href
+        });
+      }
+    },
+    /**
+     * @param {string} category
+     * @param {string} action
+     * @param {string} label
+     * @param {number} value
+     */
+    event: function event(category, action, label, value) {
+      this.send({
+          hitType: 'event',
+          eventCategory: 'Videos',
+          eventAction: 'play',
+          eventLabel: 'Fall Campaign'
+      });
+    },
+    /**
+     * @param {string} category
+     * @param {string} var_
+     * @param {number} value
+     * @param {string} label
+     */
+    timing: function(category, var_, value, label) {
+      this.send({
+        hitType: 'timing',
+        timingCategory: category,
+        timingVar: var_,
+        timingValue: value,
+        timingLabel: label
+      });
+    },
+    /**
+     * @param {string} desc
+     * @param {bool} fatal
+     */
+    exception: function(desc, fatal) {
+      fatal = fatal || false;
+      this.send({
+        hitType: 'exception',
+        exDescription: desc,
+        exFatal: fatal
+      });
+    }
+    
+  };
+
+  /**
    * @param {TouchList} touchList
    * @param {number} identifier
    * @returns {Touch} touch
@@ -503,14 +585,16 @@
 
   /**
    * @param {HTMLDivElement} container
+   * @param {Minobi.Tracker} tracker
    * @param {Minobi.Chapter} chapter
    * @param {number|undefined} initPage
    * @constructor
    */
-  Minobi.Viewer = function(container, chapter, initPage) {
+  Minobi.Viewer = function(container, tracker, chapter, initPage) {
     initPage = initPage || 0;
     /** @type {HTMLDivElement} */
     this.container_ = container;
+    this.tracker = tracker;
     this.chapter = chapter;
     this.cache_ = new Minobi.ImageCache(this, chapter);
 
@@ -718,10 +802,9 @@
         window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
         window.addEventListener('resize', function() {
           setupSize();
-          self.seekbar.move(self.axis.currentPages[0].idx + 1, 30, true);
+          self.seekbar.seek(self.axis.currentPages[0].idx + 1, 30, true);
         });
         setupSize();
-        self.seekbar.move(1, 0, true);
       };
       var onLoad = function() {
         window.removeEventListener('load', onLoad);
@@ -734,6 +817,11 @@
       if(clbk) {
         clbk(this);
       }
+      
+      //tracking page event
+      this.addEventListener('pageenter', function(pages) {
+        self.tracker.pageview(pages);
+      });
     },
     render: function() {
       this.axis.render(this.cache_, this.container_);
@@ -1539,12 +1627,15 @@
 
   /**
    * @param {HTMLDivElement} container
+   * @param {string} trackID
    * @param {[{images: [{path: string, width: number, height:number, key: (undefined|string)}], width: number, height:number}]} chapterDef
    * @param {function(Minobi.Viewer)} clbk
    */
-  Minobi.init = function(container, chapterDef, clbk) {
+  Minobi.init = function(container, trackID, chapterDef, clbk) {
+    var startInit = new Date().getTime();
     /** @type {[Minobi.Page]} */
     var pages = [];
+    var tracker = new Minobi.Tracker(trackID);
     for(var i=0;i < chapterDef.length; i++) {
       var pageDef = chapterDef[i];
       /** @type {[Minobi.Image]} */
@@ -1555,7 +1646,6 @@
         if(imgDef.key) {
           key = Minobi.decodeBase64(imgDef.key);
         }
-        imgDef.key
         var image = new Minobi.Image(imgDef.path, imgDef.width, imgDef.height, key);
         images.push(image);
       }
@@ -1566,8 +1656,11 @@
         page.prev = pages[i-1];
       }
     }
-    var viewer = new Minobi.Viewer(container, new Minobi.Chapter(pages));
+    var viewer = new Minobi.Viewer(container, tracker, new Minobi.Chapter(pages));
     viewer.init(clbk);
+    tracker.pageview();
+    var time = new Date().getTime() - startInit;
+    tracker.timing('Init', 'Setup Viewer', time);
   };
   /**
    * @param {string} str

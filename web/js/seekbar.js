@@ -55,15 +55,15 @@
   SeekBar.prototype = {
     /** @param {number} v */
     init: function(v) {
+      /* global Minobi */
       var self = this;
 
-      /** @type {number} value */
-      this.value = v;
+      this.move(v);
 
       /* hide seekbar after [this.activePeriod] */
       var hideBar = this.deactivate.bind(this);
       var showBar = this.activate.bind(this, 0);
-      self.deactivateAfter(this.activePeriod);
+      this.deactivateAfter(this.activePeriod);
       this.container_.addEventListener('mouseenter', showBar);
       this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, this.activePeriod));
 
@@ -89,7 +89,7 @@
         if(clicked) {
           event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
-          self.value = v;
+          self.seek(v, 100);
           clicked = false;
         }
       };
@@ -97,7 +97,7 @@
         if(clicked) {
           event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
-          self.value = v;
+          self.seek(v, 100);
         }
       };
       this.button_.addEventListener('mousedown', mouseDown);
@@ -123,14 +123,14 @@
         window.removeEventListener('touchcancel', touchEnd);
         if(clicked) {
           var v = (self.orientation_ > 0 ? calcPos(touch) : (1-calcPos(touch))) * (self.max_ - self.min_) + self.min_;
-          self.value = v;
+          self.seek(v, 100);
           clicked = false;
           self.deactivateAfter(this.activePeriod);
         }
         touch = null;
       };
 
-      lastMoved = new Date().getTime();
+      var lastMoved = new Date().getTime();
       var touchMove = function(event) {
         if(!clicked) {
           return;
@@ -147,7 +147,7 @@
         touch = ntouch;
 
         var v = (self.orientation_ > 0 ? calcPos(touch) : (1 - calcPos(touch))) * (self.max_ - self.min_) + self.min_;
-        self.value = v;
+        self.seek(v, 100);
       };
       this.button_.addEventListener('touchstart', touchStart, false);
     },
@@ -201,20 +201,12 @@
         list[i].apply(null, args);
       }
     },
-    /** @returns {number} value */
-    get value() {
-      return this.value_;
-    },
     changedTimer_: 0,
-    /** @param {number} v */
-    set value(v) {
-      this.move(v, 100);
-    },
     /** @param {[number]} v */
     set seekablePages(v) {
       this.seekablePages_ = v;
       if(v && v.length > 0) {
-        this.move(this.value_, 30);
+        this.seek(this.value_, 30);
       }
     },
     /** @type {[number]} seekablePages */
@@ -225,7 +217,7 @@
       * @param {number} v
       * @returns {number}
       */
-    toSeekableValue: function(v) {
+    toSeekableValue_: function(v) {
       v = Math.round(v / this.step_) * this.step_;
       v = Math.min(this.max_, Math.max(this.min_, v));
       if(!this.seekablePages_ || this.seekablePages.length === 0){
@@ -245,20 +237,20 @@
      * @param {number} delay
      * @param {boolean} reload
      */
-    move: function(v, delay, reload) {
-      this.move_(this.toSeekableValue(v), delay, reload);
+    seek: function(v, delay, reload) {
+      this.seek_(this.toSeekableValue_(v), delay, reload);
     },
     /**
      * @param {number} v
      * @param {number} delay
      * @param {boolean} reload
      */
-    move_: function(v, delay, reload) {
+    seek_: function(v, delay, reload) {
       if(delay === undefined || delay === null) delay = -1;
       if(!this.updateValue(v) && !reload) {
         return;
       }
-      this.moveSeekbar_(v);
+      this.move(v);
       var self = this;
       if(delay > 0) {
         if(this.changedTimer_) {
@@ -273,14 +265,16 @@
       }
     },
     /** @param {number} v */
-    moveSeekbar_: function(v) {
-      var total = this.container_.clientWidth - this.button_.clientWidth;
-      if(this.orientation_ > 0) {
-        var off = total * (v - this.min_) / (this.max_ - this.min_);
-        this.button_.style.left = off + 'px';
-      } else {
-        var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
-        this.button_.style.left = off + 'px';
+    move: function(v) {
+      if(this.updateValue(v)) {
+        var total = this.container_.clientWidth - this.button_.clientWidth;
+        if(this.orientation_ > 0) {
+          var off = total * (v - this.min_) / (this.max_ - this.min_);
+          this.button_.style.left = off + 'px';
+        } else {
+          var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
+          this.button_.style.left = off + 'px';
+        }
       }
     },
     /** @param {number} v */
