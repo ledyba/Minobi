@@ -407,6 +407,7 @@
    */
   Minobi.ImageCache = function(viewer, chapter) {
     this.viewer_ = viewer;
+    this.tracker_ = viewer.tracker;
     this.chapter_ = chapter;
     /** @type {[Image]} */
     this.cacheList_ = [];
@@ -414,7 +415,7 @@
     this.workers_ = [];
     this.workerIdx_ = 0;
     for(var i = 0; i < Minobi.ImageCache.MAX_WORKER; i++) {
-      this.workers_.push(new Minobi.ImageLoader(this));
+      this.workers_.push(new Minobi.ImageLoader(this, this.tracker_));
     }
     /** @type {Object.<string, boolean>} this.xhr_ */
     this.enqueued_ = {};
@@ -433,15 +434,18 @@
       for(var i=0; i < page.images.length; i++) {
         var img = page.images[i];
         if(img.entity) {
+          this.tracker_.event('ImageCache', 'Cache', 'Hit');
           // already loaded. push to the front of the list.
           var idx = this.cacheList_.indexOf(img);
           this.cacheList_.splice(idx, 1);
           this.cacheList_.push(img);
         } else {
+          this.tracker_.event('ImageCache', 'Cache', 'Miss');
           if(!!this.enqueued_[img.url]) {
             console.warn("Already enqueued: ", img.url);
             continue;
           }
+          this.tracker_.event('ImageCache', 'Loading', 'Enqueued');
           this.enqueued_[img.url] = true;
           // Tell a worker to load the image with Ajax.
           this.workers_[this.workerIdx_].load(img);
@@ -463,6 +467,7 @@
      * @param {Minobi.ImageEntity} entity
      */
     onLoaded: function(img, entity) {
+      this.tracker_.event('ImageCache', 'Loading', 'Succeed');
       delete this.enqueued_[img.url];
       img.element.src = entity.url;
       img.entity = entity;
@@ -477,30 +482,35 @@
      * @param {Minobi.Image} img
      */
     onAborted: function(img) {
+      this.tracker_.event('ImageCache', 'Loading', 'Aborted');
       delete this.enqueued_[img.url];
     },
     /**
      * @param {Minobi.Image} img
      */
     onError: function(img) {
+      this.tracker_.event('ImageCache', 'Loading', 'Failed');
       delete this.enqueued_[img.url];
     }
   };
 
   /**
    * @param {Minobi.ImageCache} cache
+   * @param {Minobi.Tracker} tracker
    * @constructor
    */
-  Minobi.ImageLoader = function(cache) {
+  Minobi.ImageLoader = function(cache, tracker) {
     /** @type {XMLHttpRequest} this.xhr_ */
     this.xhr_ = null;
     this.cache_ = cache;
+    this.trailers_ = tracker;
   };
   Minobi.ImageLoader.prototype = {
     /**
      * @param {Minobi.Image} img
      */
     load: function(img) {
+      var start = new Date().getTime();
       var self = this;
       var decode = function(dat) {
         var n = img.key.length;
@@ -536,6 +546,7 @@
         console.warn("Request aborted: ", this.xhr_.img.url);
         this.xhr_.onreadystatechange = null;
         this.xhr_.abort();
+        this.tracker_.timing('ImageLoader', 'Loading', new Date().getTime() - start, 'Aborted');
         this.cache_.onAborted(this.xhr_.img);
       }
       var xhr = new XMLHttpRequest();
@@ -546,12 +557,17 @@
           if(xhr.status == 200) {
             var dat = new Uint8Array(xhr.response);
             var type = xhr.getResponseHeader("Content-Type");
+            var now = new Date().getTime();
+            this.tracker_.timing('ImageLoader', 'Loading', now - start, 'Succeed');
             if(img.key) {
+              start = now;
               decode(dat);
+              this.tracker_.timing('ImageLoader', 'Decoding', now - new Date().getTime());
             }
             self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
           }else{
             console.error("We can't load file: ", img.url, xhr);
+            this.tracker_.timing('ImageLoader', 'Loading', new Date().getTime() - start, 'Failed');
             self.cache_.onError(img);
           }
         }
@@ -571,11 +587,13 @@
    * @constructor
    */
   Minobi.ImageEntity = function(data, type) {
+    /* global URL Blob */
     /** @type {string} */
     this.url = URL.createObjectURL(new Blob([data], {type: type}));
   };
   Minobi.ImageEntity.prototype = {
     delete: function() {
+      /* global URL */
       URL.revokeObjectURL(this.url);
       this.url = null;
     }
