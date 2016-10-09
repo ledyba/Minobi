@@ -558,16 +558,16 @@
             var dat = new Uint8Array(xhr.response);
             var type = xhr.getResponseHeader("Content-Type");
             var now = new Date().getTime();
-            this.tracker_.timing('ImageLoader', 'Loading', now - start, 'Succeed');
+            self.tracker_.timing('ImageLoader', 'Loading', now - start, 'Succeed');
             if(img.key) {
               start = now;
               decode(dat);
-              this.tracker_.timing('ImageLoader', 'Decoding', now - new Date().getTime());
+              self.tracker_.timing('ImageLoader', 'Decoding', now - new Date().getTime());
             }
             self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
           }else{
             console.error("We can't load file: ", img.url, xhr);
-            this.tracker_.timing('ImageLoader', 'Loading', new Date().getTime() - start, 'Failed');
+            self.tracker_.timing('ImageLoader', 'Loading', new Date().getTime() - start, 'Failed');
             self.cache_.onError(img);
           }
         }
