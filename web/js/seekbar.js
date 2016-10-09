@@ -1,23 +1,24 @@
 (function(){
   /**
-   * @param {Minobi.Tracker} tracker
    * @param {HTMLDivElement} container
    * @param {HTMLDivElement} button
+   * @param {HTMLDivElement} pagecounter
+   * @param {Minobi.Tracker} tracker
    * @param {number} min
    * @param {number} max
    * @param {number} step
-   * @param {number} hideDelay
    * @constructor
    */
-  var SeekBar = function(tracker, container, button, pagecounter, min, max, step, orientation, hideDelay) {
-    /** @type {Minobi.Tracker} tracker_ */
-    this.tracker_ = tracker;
+  var SeekBar = function(container, button, pagecounter, tracker, min, max, step, orientation) {
     /** @type {HTMLDivElement} container_ */
     this.container_ = container;
     /** @type {HTMLDivElement} button_ */
     this.button_ = button;
     /** @type {HTMLDivElement} pagecounter_ */
     this.pagecounter_ = pagecounter;
+
+    /** @type {Minobi.Tracker} tracker_ */
+    this.tracker_ = tracker;
 
     /** @type {number} min_ */
     this.min_ = min;
@@ -28,8 +29,6 @@
 
     /** @type {number} orientation_ */
     this.orientation_ = orientation;
-    /** @type {number} hideDelay_ */
-    this.hideDelay_ = hideDelay;
     /** @type {number} value_ */
     this.value_ = NaN;
 

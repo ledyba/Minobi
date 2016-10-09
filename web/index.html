@@ -42,17 +42,20 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
         chapter,
         function(viewer) {
           var seekbar = new SeekBar(
-            viewer.tracker,
             document.getElementById("minobi-seekbar"),
             document.getElementById("minobi-seekbar-button"),
             document.getElementById("minobi-seekbar-pagecounter"),
-            1,
-            chapter.length,
-            1,
-            -1,
-            0.4);
+            viewer.tracker,
+            1 /* min */,
+            chapter.length /* max */,
+            1 /* step */,
+            -1 /* orientation(R->L) */);
           seekbar.init(0);
           viewer.seekbar = seekbar;
+
+          window.onerror = function (msg, file, line, column, err) {
+            viewer.tracker.exception(msg + ' ('+ file + ' @ ' + line + ':' + column + ')', true);
+          };
         });
   </script>
 </body>

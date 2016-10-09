@@ -575,7 +575,7 @@
         }
       };
       xhr.onerror = function(e) {
-        console.log(e);
+        console.error(e);
         self.tracker_.event('ImageLoader', 'UnknownError', img.url);
         self.tracker_.exception("xhr.onerror", false);
       };
