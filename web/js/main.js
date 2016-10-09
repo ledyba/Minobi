@@ -234,11 +234,11 @@
   };
 
   /**
-   * @param {Minobi.Page[]} pages
+   * @param {[Minobi.Page]} pages
    * @constructor
    */
    Minobi.Face = function(pages) {
-     /** @type {Minobi.Page[]} pages */
+     /** @type {[Minobi.Page]} pages */
      this.pages = pages;
      /** @type {number} */
      this.scale_ = 1.0;
@@ -309,18 +309,23 @@
        this.zIndex_ = index;
        this.elem_.style.zIndex = index;
      },
-     /** @param {boolean} active */
-     set active(active) {
-       if(active === this.active_) {
+     /** @param {boolean} v */
+     set active(v) {
+       if(v === this.active_) {
          return;
        }
-       this.active_ = active;
-       if(active) {
+       this.active_ = v;
+       if(v) {
          this.elem_.classList.add('active');
        } else {
          this.elem_.classList.remove('active');
        }
      },
+     /**
+      * @param {number} scale
+      * @param {number} dx
+      * @param {number} dy
+      */
      transform: function(scale, dx, dy) {
        this.scale_ = scale;
        this.x_ = dx;
