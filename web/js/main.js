@@ -48,9 +48,10 @@
     event: function event(category, action, label, value) {
       this.send({
           hitType: 'event',
-          eventCategory: 'Videos',
-          eventAction: 'play',
-          eventLabel: 'Fall Campaign'
+          eventCategory: category,
+          eventAction: action,
+          eventValue: value,
+          eventLabel: label
       });
     },
     /**
@@ -503,7 +504,7 @@
     /** @type {XMLHttpRequest} this.xhr_ */
     this.xhr_ = null;
     this.cache_ = cache;
-    this.trailers_ = tracker;
+    this.tracker_ = tracker;
   };
   Minobi.ImageLoader.prototype = {
     /**
@@ -562,7 +563,7 @@
             if(img.key) {
               start = now;
               decode(dat);
-              self.tracker_.timing('ImageLoader', 'Decoding', now - new Date().getTime());
+              self.tracker_.timing('ImageLoader', 'Decoding', new Date().getTime() - start);
             }
             self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
           }else{
