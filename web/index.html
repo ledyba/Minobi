@@ -42,6 +42,7 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
         chapter,
         function(viewer) {
           var seekbar = new SeekBar(
+            viewer.tracker,
             document.getElementById("minobi-seekbar"),
             document.getElementById("minobi-seekbar-button"),
             document.getElementById("minobi-seekbar-pagecounter"),

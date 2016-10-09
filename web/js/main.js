@@ -81,7 +81,7 @@
         exFatal: fatal
       });
     }
-    
+
   };
 
   /**
@@ -435,18 +435,18 @@
       for(var i=0; i < page.images.length; i++) {
         var img = page.images[i];
         if(img.entity) {
-          this.tracker_.event('ImageCache', 'Cache', 'Hit');
+          this.tracker_.event('ImageCache', 'Hit', img.url);
           // already loaded. push to the front of the list.
           var idx = this.cacheList_.indexOf(img);
           this.cacheList_.splice(idx, 1);
           this.cacheList_.push(img);
         } else {
-          this.tracker_.event('ImageCache', 'Cache', 'Miss');
+          this.tracker_.event('ImageCache', 'Miss', img.url);
           if(!!this.enqueued_[img.url]) {
             console.warn("Already enqueued: ", img.url);
             continue;
           }
-          this.tracker_.event('ImageCache', 'Loading', 'Enqueued');
+          this.tracker_.event('ImageCache', 'Enqueued', img.url);
           this.enqueued_[img.url] = true;
           // Tell a worker to load the image with Ajax.
           this.workers_[this.workerIdx_].load(img);
@@ -468,7 +468,7 @@
      * @param {Minobi.ImageEntity} entity
      */
     onLoaded: function(img, entity) {
-      this.tracker_.event('ImageCache', 'Loading', 'Succeed');
+      this.tracker_.event('ImageCache', 'LoadSucceed', img.url);
       delete this.enqueued_[img.url];
       img.element.src = entity.url;
       img.entity = entity;
@@ -483,14 +483,14 @@
      * @param {Minobi.Image} img
      */
     onAborted: function(img) {
-      this.tracker_.event('ImageCache', 'Loading', 'Aborted');
+      this.tracker_.event('ImageCache', 'LoadAborted', img.url);
       delete this.enqueued_[img.url];
     },
     /**
      * @param {Minobi.Image} img
      */
     onError: function(img) {
-      this.tracker_.event('ImageCache', 'Loading', 'Failed');
+      this.tracker_.event('ImageCache', 'LoadFailed', img.url);
       delete this.enqueued_[img.url];
     }
   };
@@ -547,7 +547,7 @@
         console.warn("Request aborted: ", this.xhr_.img.url);
         this.xhr_.onreadystatechange = null;
         this.xhr_.abort();
-        this.tracker_.timing('ImageLoader', 'Loading', new Date().getTime() - start, 'Aborted');
+        this.tracker_.timing('ImageLoader', 'LoadingAborted', new Date().getTime() - start, img.url);
         this.cache_.onAborted(this.xhr_.img);
       }
       var xhr = new XMLHttpRequest();
@@ -559,19 +559,25 @@
             var dat = new Uint8Array(xhr.response);
             var type = xhr.getResponseHeader("Content-Type");
             var now = new Date().getTime();
-            self.tracker_.timing('ImageLoader', 'Loading', now - start, 'Succeed');
+            self.tracker_.timing('ImageLoader', 'LoadingSucceed', now - start, img.url);
             if(img.key) {
               start = now;
               decode(dat);
-              self.tracker_.timing('ImageLoader', 'Decoding', new Date().getTime() - start);
+              self.tracker_.timing('ImageLoader', 'Decoding', new Date().getTime() - start, img.url);
             }
             self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
           }else{
             console.error("We can't load file: ", img.url, xhr);
-            self.tracker_.timing('ImageLoader', 'Loading', new Date().getTime() - start, 'Failed');
+            self.tracker_.timing('ImageLoader', 'LoadingFailed', new Date().getTime() - start, img.url);
+            self.tracker_.exception(xhr.statusText, false);
             self.cache_.onError(img);
           }
         }
+      };
+      xhr.onerror = function(e) {
+        console.log(e);
+        self.tracker_.event('ImageLoader', 'UnknownError', img.url);
+        self.tracker_.exception("xhr.onerror", false);
       };
       xhr.open('GET', img.url, true);
       // XXX: [workaround]
@@ -659,6 +665,7 @@
      */
     init: function(clbk) {
       var self = this;
+      var tracker = self.tracker;
       var clicked = false;
 
       // Mouse
@@ -680,13 +687,16 @@
           var vx = (dx / self.emInPx_) / duration;
           var vy = (dy / self.emInPx_) / duration;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
-          self.axis.onMoveEnd(self, isTap,
+          self.axis.onMoveEnd(self,
+            'Mouse',
+            isTap,
             self.transitionAreaRatioForMouse,
             (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_,
             (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_,
             duration,
             vx,
             vy);
+          tracker.event('Viewer', 'MouseUp');
         }
       };
       var mouseMove = function(event) {
@@ -708,6 +718,7 @@
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
           window.addEventListener('mouseleave', mouseUp);
+          tracker.event('Viewer', 'MouseDown');
         }
       };
       this.container_.addEventListener('mousedown', mouseDown, false);
@@ -732,6 +743,7 @@
           firstTouchX = lastTouchX = touch.clientX;
           firstTouchY = lastTouchY = touch.clientY;
           touchStart = event.timeStamp;
+          tracker.event('Viewer', 'TouchStart');
         } else if(event.touches.length > 1){
           clicked = false;
         }
@@ -745,20 +757,21 @@
           event.preventDefault();
           lastTouchX = touch.clientX;
           lastTouchY = touch.clientY;
-          self.axis.onMoveEnd(self);
+          self.axis.onMoveStart(self);
           var dx = lastTouchX - firstTouchX;
           var dy = lastTouchY - firstTouchY;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
           var duration = (event.timeStamp - touchStart) / 1000;
           var vx = (dx / self.emInPx_) / duration;
           var vy = (dy / self.emInPx_) / duration;
-          self.axis.onMoveEnd(self, isTap,
+          self.axis.onMoveEnd(self, 'Touch', isTap,
             self.transitionAreaRatioForTouch,
             (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_,
             (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_,
             duration,
             vx,
             vy);
+          tracker.event('Viewer', 'TouchEnd');
         }
         clicked = false;
         touch = null;
@@ -828,6 +841,7 @@
       var onLoad = function() {
         window.removeEventListener('load', onLoad);
         self.emInPx_ = parseFloat(getComputedStyle(window.document.body).fontSize);
+        tracker.event('Viewer', 'EmInPx', undefined, self.emInPx_);
         self.maxTapDistance_ = self.emInPx_ * 3;
         self.container_.focus();
       };
@@ -836,7 +850,7 @@
       if(clbk) {
         clbk(this);
       }
-      
+
       //tracking page event
       this.addEventListener('pageenter', function(pages) {
         self.tracker.pageview(pages);
@@ -847,8 +861,9 @@
     },
     /**
      * @param {Minobi.Page} page
+     * @private
      */
-    seek: function(page) {
+    seek_: function(page) {
       this.axis.seek(this.cache_, this.container_, page);
     },
     /** @param {SeekBar} seekbar*/
@@ -856,7 +871,7 @@
       var self = this;
       /** @param {number} value */
       seekbar.onChanged = function(value) {
-        self.seek(self.chapter.pages[value-1]);
+        self.seek_(self.chapter.pages[value-1]);
         self.render();
       };
       this.seekbar_ = seekbar;
@@ -920,7 +935,7 @@
       return this.cache_;
     },
     makeHorizontalAxis: function() {
-      var axis = new Minobi.HorizontalAxis(this.chapter);
+      var axis = new Minobi.HorizontalAxis(this.tracker, this.chapter);
       axis.addEventListener('pageenter', this.onPageEnter_.bind(this));
       return axis;
     },
@@ -930,10 +945,12 @@
   };
 
   /**
+   * @param {Minobi.Tracker} tracker
    * @param {Minobi.Chapter} chapter
    * @constructor
    */
-  Minobi.Axis = function(chapter) {
+  Minobi.Axis = function(tracker, chapter) {
+    this.tracker_ = tracker;
     this.chapter_ = chapter;
 
     /** @type {Object.<string, [function()]>} */
@@ -1003,6 +1020,7 @@
     },
     /**
      * @param {Minobi.Viewer} viewer
+     * @param {string} device
      * @param {boolean} isTap
      * @param {number} transitionArea
      * @param {number} lastRelX
@@ -1011,7 +1029,7 @@
      * @param {number} speedXinEm
      * @param {number} speedYinEm
      */
-    onMoveEnd: function(viewer, isTap, transitionArea, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
+    onMoveEnd: function(viewer, device, isTap, transitionArea, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
       return false;
     },
      /**
@@ -1085,12 +1103,13 @@
   };
 
   /**
+   * @param {Minobi.Tracker} tracker
    * @param {Minobi.Chapter} chapter
    * @extends {Minobi.Axis}
    * @constructor
    */
-  Minobi.HorizontalAxis = function(chapter) {
-    Minobi.Axis.call(this, chapter);
+  Minobi.HorizontalAxis = function(tracker, chapter) {
+    Minobi.Axis.call(this, tracker, chapter);
     /** @type {Minobi.Face} */
     this.current_ = null;
     /** @type {number} */
@@ -1194,12 +1213,14 @@
             // make a face with 2 pages.
             var face = new Minobi.Face([page, next]);
             face.layout(container);
+            this.tracker_.event('Viewer', 'MultiplePages', 'Forward', page.idx);
             return face;
           }
         }
         // make a face with a single page.
         var face = new Minobi.Face([page]);
         face.layout(container);
+        this.tracker_.event('Viewer', 'SinglePages', 'Forward', page.idx);
         return face;
       }
     },
@@ -1217,12 +1238,14 @@
             // make a face with 2 pages.
             var face = new Minobi.Face([prev, page]);
             face.layout(container);
+            this.tracker_.event('Viewer', 'MultiplePages', 'Backward', page.idx);
             return face;
           }
         }
         // make a face with a single page.
         var face = new Minobi.Face([page]);
         face.layout(container);
+        this.tracker_.event('Viewer', 'SinglePages', 'Backward', page.idx);
         return face;
       }
     },
@@ -1413,6 +1436,7 @@
       value: function onLeft(viewer) {
         var cache = viewer.cache;
         var container = viewer.container;
+        this.tracker_.event('Viewer', 'SeekByKeyboard', 'Forward', this.current_.pages[0].idx);
         if(this.current_.nextPage) {
           this.seek(cache, container, this.current_.nextPage);
           return true;
@@ -1430,6 +1454,7 @@
       value: function onRight(viewer) {
         var cache = viewer.cache;
         var container = viewer.container;
+        this.tracker_.event('Viewer', 'SeekByKeyboard', 'Backward', this.current_.pages[0].idx);
         if(this.current_.prev) {
           this.seekPrev(cache, container, this.current_.prevPage);
           return true;
@@ -1470,6 +1495,7 @@
     onMoveEnd: {
       /**
        * @param {Minobi.Viewer} viewer
+       * @param {string} device
        * @param {boolean} isTap
        * @param {number} transitionArea
        * @param {number} lastRelX
@@ -1479,20 +1505,24 @@
        * @param {number} speedYinEm
        * @override
        */
-      value: function onMoveEnd(viewer, isTap, transitionArea, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
+      value: function onMoveEnd(viewer, device, isTap, transitionArea, lastRelX, lastRelY, duration, speedXinEm, speedYinEm) {
         var cache = viewer.cache;
         var container = viewer.container;
+        var tracker = viewer.tracker;
         if(isTap) {
           if(lastRelX < transitionArea && this.current_.nextPage) {
             this.seek(cache, container, this.current_.nextPage);
             viewer.render();
+            tracker.event('Viewer', 'SeekBy'+device, 'Forward', this.current_.pages[0].idx);
             return;
           } else if(lastRelX > (1 - transitionArea) && this.current_.prevPage) {
             this.seekPrev(cache, container, this.current_.prevPage);
             viewer.render();
+            tracker.event('Viewer', 'SeekBy'+device, 'Backward', this.current_.pages[0].idx);
             return;
           } else {
             viewer.seekbar.activate(viewer.seekbar.activePeriod);
+            tracker.event('Viewer', 'ActivateSeekbar', device, lastRelX);
             // do not return, since the page might be moved by fingers/mouse pointers.
           }
         }

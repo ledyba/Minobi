@@ -1,5 +1,6 @@
 (function(){
   /**
+   * @param {Minobi.Tracker} tracker
    * @param {HTMLDivElement} container
    * @param {HTMLDivElement} button
    * @param {number} min
@@ -8,7 +9,9 @@
    * @param {number} hideDelay
    * @constructor
    */
-  var SeekBar = function(container, button, pagecounter, min, max, step, orientation, hideDelay) {
+  var SeekBar = function(tracker, container, button, pagecounter, min, max, step, orientation, hideDelay) {
+    /** @type {Minobi.Tracker} tracker_ */
+    this.tracker_ = tracker;
     /** @type {HTMLDivElement} container_ */
     this.container_ = container;
     /** @type {HTMLDivElement} button_ */
@@ -73,6 +76,7 @@
         return (event.clientX - self.container_.getBoundingClientRect().left) /
               (self.container_.clientWidth - self.button_.clientWidth);
       };
+      var orig = -1;
       var mouseDown = function(event) {
         if(event.buttons != 0 && !clicked) {
           event.preventDefault();
@@ -80,6 +84,7 @@
           window.addEventListener('mousemove', mouseMove);
           window.addEventListener('mouseup', mouseUp);
           window.addEventListener('mouseleave', mouseUp);
+          orig = self.value_;
         }
       };
       var mouseUp = function(event) {
@@ -91,6 +96,7 @@
           var v = (self.orientation_ > 0 ? calcPos(event) : (1-calcPos(event))) * (self.max_ - self.min_) + self.min_;
           self.seek(v, 100);
           clicked = false;
+          self.tracker_.event('SeekBar', 'SeekByMouse', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
         }
       };
       var mouseMove = function(event){
@@ -114,6 +120,7 @@
           window.addEventListener('touchleave', touchEnd, false);
           window.addEventListener('touchcancel', touchEnd, false);
           touch = event.targetTouches[0];
+          orig = self.value_;
         }
       };
       var touchEnd = function(event) {
@@ -126,6 +133,7 @@
           self.seek(v, 100);
           clicked = false;
           self.deactivateAfter(this.activePeriod);
+          self.tracker_.event('SeekBar', 'SeekByTouch', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
         }
         touch = null;
       };
@@ -149,7 +157,7 @@
         var v = (self.orientation_ > 0 ? calcPos(touch) : (1 - calcPos(touch))) * (self.max_ - self.min_) + self.min_;
         self.seek(v, 100);
       };
-      this.button_.addEventListener('touchstart', touchStart, false);
+      self.button_.addEventListener('touchstart', touchStart, false);
     },
     /**
      * @param {string} name
@@ -216,6 +224,7 @@
     /**
       * @param {number} v
       * @returns {number}
+      * @private
       */
     toSeekableValue_: function(v) {
       v = Math.round(v / this.step_) * this.step_;
@@ -244,13 +253,14 @@
      * @param {number} v
      * @param {number} delay
      * @param {boolean} reload
+     * @private
      */
     seek_: function(v, delay, reload) {
       if(delay === undefined || delay === null) delay = -1;
       if(!this.updateValue(v) && !reload) {
         return;
       }
-      this.move(v);
+      this.moveUI(v);
       var self = this;
       if(delay > 0) {
         if(this.changedTimer_) {
@@ -267,14 +277,18 @@
     /** @param {number} v */
     move: function(v) {
       if(this.updateValue(v)) {
-        var total = this.container_.clientWidth - this.button_.clientWidth;
-        if(this.orientation_ > 0) {
-          var off = total * (v - this.min_) / (this.max_ - this.min_);
-          this.button_.style.left = off + 'px';
-        } else {
-          var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
-          this.button_.style.left = off + 'px';
-        }
+        this.moveUI(v);
+      }
+    },
+    /** @param {number} v */
+    moveUI: function(v) {
+      var total = this.container_.clientWidth - this.button_.clientWidth;
+      if(this.orientation_ > 0) {
+        var off = total * (v - this.min_) / (this.max_ - this.min_);
+        this.button_.style.left = off + 'px';
+      } else {
+        var off = total * (1 - ((v - this.min_) / (this.max_ - this.min_)));
+        this.button_.style.left = off + 'px';
       }
     },
     /** @param {number} v */
