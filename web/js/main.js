@@ -1130,36 +1130,102 @@
   };
 
   Minobi.HorizontalAxis.prototype = Object.create(Minobi.Axis.prototype, {
-    seek: {
+    seekInternal_: {
+      /**
+       * @name IMakeCurrentFace
+       * @param {Minobi.Page}
+       * @return {Minobi.Face}
+       */
       /**
        * @param {Minobi.ImageCache} cache
        * @param {HTMLDivElement} container
        * @param {Minobi.Page} page
+       * @param {IMakeCurrentFace} makeCurrentFace
        * @override
        */
-      value: function seek(cache, container, page) {
-        //
+      value: function seek(cache, container, page, makeCurrentFace) {
+        /** @type {[Minobi.Face]} */
+        var current = [];
+        /** @type {[Minobi.Face]} */
+        var updated = [];
         if(this.current_) {
-          this.current_.detach(container);
+          current.push(this.current_);
+          this.current_.active = false;
           if(this.current_.prev) {
-            this.current_.prev.detach(container);
+            current.push(this.current_.prev);
+            this.current_.prev.active = false;
           }
           if(this.current_.next) {
-            this.current_.next.detach(container);
+            current.push(this.current_.next);
+            this.current_.next.active = false;
           }
         }
         //
-        this.current_ = this.makeFace_(container, page);
-        this.current_.attach(container);
-        this.current_.active = true;
-        if(this.current_.nextPage) {
-          this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
-          this.current_.next.attach(container);
+        /** @param {Minobi.Face} face */
+        var reuseFaceIfNecessary = function(face) {
+          for(var i = 0; i < current.length; i++) {
+            var cur = current[i];
+            if(face.pages.length !== cur.pages.length) {
+              break;
+            }
+            var matched = true;
+            for(var j = 0; j < cur.pages.length; j++) {
+              if(cur.pages[j] !== face.pages[j]) {
+                matched = false;
+                break;
+              }
+            }
+            if(matched) {
+              return cur;
+            }
+          }
+          return face;
+        };
+        var cur,prev,next;
+        cur = reuseFaceIfNecessary(makeCurrentFace(page));
+        updated.push(cur);
+        cur.active = true;
+        if(cur.nextPage) {
+          next = reuseFaceIfNecessary(this.makeFace_(container, cur.nextPage));
+          updated.push(next);
         }
-        if(this.current_.prevPage) {
-          this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
-          this.current_.prev.attach(container);
+        if(cur.prevPage) {
+          prev = reuseFaceIfNecessary(this.makePrevFace_(container, cur.prevPage));
+          updated.push(prev);
         }
+        var deleted;
+        var inserted = [];
+        for(var i = 0;i < updated.length; i++) {
+          var matched = false;
+          for(var j = 0; j < current.length; j++) {
+            if(updated[i] === current[j]) {
+              matched = true;
+              current.splice(j, 1);
+              break;
+            }
+          }
+          if(!matched) {
+            inserted.push(updated[i]);
+          }
+        }
+        deleted = current;
+
+        cur.active = true;
+        if(next) {
+          cur.linkNext(next);
+        }
+        if(prev) {
+          cur.linkPrev(prev);
+        }
+        for(var i = 0; i < inserted.length; i++) {
+          inserted[i].opacity = 0;
+          inserted[i].attach(container);
+        }
+        for(var i = 0; i < deleted.length; i++) {
+          deleted[i].detach(container);
+        }
+
+        this.current_ = cur;
         this.pos_ = 0;
         this.speed_ = 0;
         if(this.timer) {
@@ -1171,6 +1237,17 @@
         this.detachQueue_.splice(0, this.detachQueue_.length);
       }
     },
+    seek: {
+      /**
+       * @param {Minobi.ImageCache} cache
+       * @param {HTMLDivElement} container
+       * @param {Minobi.Page} page
+       * @override
+       */
+      value: function seek(cache, container, page) {
+        this.seekInternal_(cache, container, page, this.makeFace_.bind(this, container));
+      }
+    },
     seekPrev: {
       /**
        * @param {Minobi.ImageCache} cache
@@ -1179,29 +1256,7 @@
        * @override
        */
       value: function seekPrev(cache, container, page) {
-        this.current_.detach(container);
-        if(this.current_.prev) {
-          this.current_.prev.detach(container);
-        }
-        if(this.current_.next) {
-          this.current_.next.detach(container);
-        }
-        this.current_ = this.makePrevFace_(container, page);
-        this.current_.attach(container);
-        this.current_.active = true;
-        if(this.current_.nextPage) {
-          this.current_.linkNext(this.makeFace_(container, this.current_.nextPage));
-          this.current_.next.attach(container);
-        }
-        if(this.current_.prevPage) {
-          this.current_.linkPrev(this.makePrevFace_(container, this.current_.prevPage));
-          this.current_.prev.attach(container);
-        }
-        this.pos_ = 0;
-        this.speed_ = 0;
-        this.dispatchPageEnterEvent();
-        this.attachQueue_.splice(0, this.attachQueue_.length);
-        this.detachQueue_.splice(0, this.detachQueue_.length);
+        this.seekInternal_(cache, container, page, this.makePrevFace_.bind(this, container));
       }
     },
     makeFace_: {
@@ -1394,10 +1449,11 @@
         this.current_.opacity = 1 - this.pos_;
         this.current_.transform((1 - this.pos_) * 0.25 + 0.75, 0, 0);
         this.current_.render(cache, container);
+        this.current_.opacity = 1;
         if(this.current_.next) {
-          this.current_.next.opacity = 1;
           this.current_.next.transform(1, (this.pos_ - 1) * container.clientWidth_, 0);
           this.current_.next.render(cache, container);
+          this.current_.next.opacity = 1;
         }
         if(this.current_.prev) {
           this.current_.prev.opacity = 0;
