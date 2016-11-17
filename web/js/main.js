@@ -92,7 +92,7 @@
   Minobi.findTouchEvent = function(touchList, identifier){
     // https://www.w3.org/TR/touch-events/
     for(var i = 0; i < touchList.length; i++) {
-      if(touchList[i].identifier == identifier) {
+      if(touchList[i].identifier === identifier) {
         return touchList[i];
       }
     }
@@ -558,9 +558,9 @@
       var xhr = new XMLHttpRequest();
       xhr.img = img;
       xhr.onreadystatechange = function onReadyStateChange() {
-        if (xhr.readyState == 4) {
+        if (xhr.readyState === 4) {
           self.xhr_ = null;
-          if(xhr.status == 200) {
+          if(xhr.status === 200) {
             var dat = new Uint8Array(xhr.response);
             var type = xhr.getResponseHeader("Content-Type");
             var now = new Date().getTime();
@@ -713,6 +713,15 @@
         }
       };
       var mouseDown = function(event) {
+        if(event.timeStamp - touchEndAt < 500) {
+          event.preventDefault();
+          //XXX: Worst way to ignore emulated mouse event...
+          // But it seems that there is no way to stop emulated events or
+          // distinguish just only emulated events from all mouse events...
+          // https://developer.apple.com/library/content/documentation/AppleApplications/Reference/SafariWebContent/HandlingEvents/HandlingEvents.html#//apple_ref/doc/uid/TP40006511-SW24
+          console.warn("It could be emulated mouse event. Ignore.");
+          return;
+        }
         if(event.buttons != 0 && !clicked) {
           event.preventDefault();
           clicked = true;
@@ -730,24 +739,25 @@
 
       // Touch
       var touch = null;
-      var touchStart = 0;
+      var touchStartAt = 0;
+      var touchEndAt = 0;
       var firstTouchX = 0;
       var firstTouchY = 0;
       var lastTouchX = 0;
       var lastTouchY = 0;
       var touchStart = function(event) {
-        if(!clicked && !!event.targetTouches[0] && event.touches.length == 1) {
-          //event.preventDefault();
+        event.preventDefault();
+        if(!clicked && !!event.targetTouches[0] && event.touches.length === 1) {
           clicked = true;
           self.axis.onMoveStart(self);
-          window.addEventListener('touchmove', touchMove, false);
+          window.addEventListener('touchmove', touchMove, {passive: true});
           window.addEventListener('touchend', touchEnd, false);
           window.addEventListener('touchleave', touchEnd, false);
           window.addEventListener('touchcancel', touchEnd, false);
           touch = event.targetTouches[0];
           firstTouchX = lastTouchX = touch.clientX;
           firstTouchY = lastTouchY = touch.clientY;
-          touchStart = event.timeStamp;
+          touchStartAt = event.timeStamp;
           tracker.event('Viewer', 'TouchStart');
         } else if(event.touches.length > 1){
           clicked = false;
@@ -766,7 +776,7 @@
           var dx = lastTouchX - firstTouchX;
           var dy = lastTouchY - firstTouchY;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
-          var duration = (event.timeStamp - touchStart) / 1000;
+          var duration = (event.timeStamp - touchStartAt) / 1000;
           var vx = (dx / self.emInPx_) / duration;
           var vy = (dy / self.emInPx_) / duration;
           self.axis.onMoveEnd(self, 'Touch', isTap,
@@ -777,12 +787,13 @@
             vx,
             vy);
           tracker.event('Viewer', 'TouchEnd');
+          touchEndAt = event.timeStamp;
         }
         clicked = false;
         touch = null;
         firstTouchX = lastTouchX = 0;
         firstTouchY = lastTouchY = 0;
-        touchStart = 0;
+        touchStartAt = 0;
       };
       var lastMoved = new Date().getTime();
       var touchMove = function(event) {
