@@ -41,6 +41,12 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
         'UA-85432710-1',
         chapter,
         function(viewer) {
+          // Add error handler
+          window.onerror = function (msg, file, line, column, err) {
+            viewer.tracker.exception(msg + ' ('+ file + ' @ ' + line + ':' + column + ')', true);
+          };
+
+          // Make seekbar.
           var seekbar = new SeekBar(
             viewer,
             document.getElementById("minobi-seekbar"),
@@ -51,9 +57,6 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
             chapter.length /* max */,
             1 /* step */,
             -1 /* orientation(R->L) */);
-          window.onerror = function (msg, file, line, column, err) {
-            viewer.tracker.exception(msg + ' ('+ file + ' @ ' + line + ':' + column + ')', true);
-          };
 
           // Move
           seekbar.init(0);
