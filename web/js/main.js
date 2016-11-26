@@ -617,11 +617,9 @@
    * @param {HTMLDivElement} container
    * @param {Minobi.Tracker} tracker
    * @param {Minobi.Chapter} chapter
-   * @param {number|undefined} initPage
    * @constructor
    */
-  Minobi.Viewer = function(container, tracker, chapter, initPage) {
-    initPage = initPage || 0;
+  Minobi.Viewer = function(container, tracker, chapter) {
     /** @type {HTMLDivElement} */
     this.container_ = container;
     this.tracker = tracker;
@@ -629,8 +627,7 @@
     this.cache_ = new Minobi.ImageCache(this, chapter);
 
     // Axis
-    this.axis = this.makeHorizontalAxis(initPage);
-    this.cache_.enqueue(chapter.pages[initPage]);
+    this.axis = this.makeHorizontalAxis();
 
     //
     this.container_.classList.add('minobi');
@@ -717,7 +714,7 @@
           event.preventDefault();
           //XXX: Worst way to ignore emulated mouse event...
           // But it seems that there is no way to stop emulated events or
-          // distinguish just only emulated events from all mouse events...
+          // distinguish emulated events from all mouse events...
           // https://developer.apple.com/library/content/documentation/AppleApplications/Reference/SafariWebContent/HandlingEvents/HandlingEvents.html#//apple_ref/doc/uid/TP40006511-SW24
           console.warn("It could be emulated mouse event. Ignore.");
           return;
