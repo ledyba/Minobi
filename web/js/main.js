@@ -850,6 +850,7 @@
           self.seekbar.seek(self.axis.currentPages[0].idx + 1, 30, true);
         });
         setupSize();
+        self.seekbar.seek(self.axis.currentPages[0].idx + 1, 0, true);
       };
       var onLoad = function() {
         window.removeEventListener('load', onLoad);

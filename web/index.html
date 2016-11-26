@@ -42,6 +42,7 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
         chapter,
         function(viewer) {
           var seekbar = new SeekBar(
+            viewer,
             document.getElementById("minobi-seekbar"),
             document.getElementById("minobi-seekbar-button"),
             document.getElementById("minobi-seekbar-pagecounter"),
@@ -50,12 +51,12 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
             chapter.length /* max */,
             1 /* step */,
             -1 /* orientation(R->L) */);
-          seekbar.init(0);
-          viewer.seekbar = seekbar;
-
           window.onerror = function (msg, file, line, column, err) {
             viewer.tracker.exception(msg + ' ('+ file + ' @ ' + line + ':' + column + ')', true);
           };
+
+          // Move
+          seekbar.init(0);
         });
   </script>
 </body>

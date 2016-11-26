@@ -1,5 +1,6 @@
 (function(){
   /**
+   * @param {Minobi.Viewer} viewer
    * @param {HTMLDivElement} container
    * @param {HTMLDivElement} button
    * @param {HTMLDivElement} pagecounter
@@ -9,7 +10,7 @@
    * @param {number} step
    * @constructor
    */
-  var SeekBar = function(container, button, pagecounter, tracker, min, max, step, orientation) {
+  var SeekBar = function(viewer, container, button, pagecounter, tracker, min, max, step, orientation) {
     /** @type {HTMLDivElement} container_ */
     this.container_ = container;
     /** @type {HTMLDivElement} button_ */
@@ -53,6 +54,10 @@
      * @public
      */
     this.activePeriod = 1000;
+
+    if(viewer) {
+      viewer.seekbar = this;
+    }
   };
   SeekBar.prototype = {
     /** @param {number} v */
@@ -60,7 +65,7 @@
       /* global Minobi */
       var self = this;
 
-      this.move(v);
+      this.seek(v, 0, true);
 
       /* hide seekbar after [this.activePeriod] */
       var hideBar = this.deactivate.bind(this);
