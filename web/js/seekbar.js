@@ -33,9 +33,6 @@
     /** @type {number} value_ */
     this.value_ = NaN;
 
-    /** @param {number} v */
-    this.onChanged = function(v) {};
-
     /** @type {number} disableTimer_ */
     this.hideTimer_ = 0;
 
@@ -46,6 +43,7 @@
     this.listeners_ = {};
     this.listeners_['activated'] = [];
     this.listeners_['deactivated'] = [];
+    this.listeners_['changed'] = [];
 
     /**
      * @type {number} activePeriod
@@ -55,8 +53,16 @@
      */
     this.activePeriod = 1000;
 
+    /** @type {number} */
+    this.initPage_ = 0;
+
     if(viewer) {
       viewer.seekbar = this;
+      viewer.addEventListener("ready", this.onReady_.bind(this));
+      viewer.addEventListener("resize", this.onResize_.bind(this));
+      viewer.addEventListener("pageenter", function(pages) {
+        this.move(pages[0]+1);
+      }.bind(this));
     }
   };
   SeekBar.prototype = {
@@ -65,7 +71,7 @@
       /* global Minobi */
       var self = this;
 
-      this.seek(v, 0, true);
+      this.initPage_ = v;
 
       /* hide seekbar after [this.activePeriod] */
       var hideBar = this.deactivate.bind(this);
@@ -271,11 +277,14 @@
           window.clearTimeout(this.changedTimer_);
         }
         this.changedTimer_ = window.setTimeout(function(){
-          self.onChanged(v);
+          self.dispatchEvent_('changed', v);
           self.changedTimer_ = 0;
         }, delay);
       } else if(delay >= 0) {
-        self.onChanged(v);
+        if(this.changedTimer_) {
+          window.clearTimeout(this.changedTimer_);
+        }
+        self.dispatchEvent_('changed', v);
       }
     },
     /** @param {number} v */
@@ -331,7 +340,13 @@
         this.hideTimer_ = 0;
       }
       this.hideTimer_ = window.setTimeout(this.deactivate.bind(this), delayMs);
-    }
+    },
+    onReady_: function(){
+      this.seek_(this.initPage_, 0, true);
+    },
+    onResize_: function(){
+      this.seek_(this.value_, 30, true);
+    },
   };
   window.SeekBar = SeekBar;
 })();

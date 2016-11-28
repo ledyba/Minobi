@@ -643,6 +643,8 @@
     /** @type {Object.<string, [function()]>} */
     this.listeners_ = {};
     this.listeners_['pageenter'] = [];
+    this.listeners_['ready'] = [];
+    this.listeners_['resize'] = [];
 
     /**
      * @type {number} transitionAreaRatioForTouch
@@ -743,7 +745,6 @@
       var lastTouchX = 0;
       var lastTouchY = 0;
       var touchStart = function(event) {
-        event.preventDefault();
         if(!clicked && !!event.targetTouches[0] && event.touches.length === 1) {
           clicked = true;
           self.axis.onMoveStart(self);
@@ -766,10 +767,9 @@
         window.removeEventListener('touchleave', touchEnd);
         window.removeEventListener('touchcancel', touchEnd);
         if(clicked) {
-          event.preventDefault();
+          //event.preventDefault();
           lastTouchX = touch.clientX;
           lastTouchY = touch.clientY;
-          self.axis.onMoveStart(self);
           var dx = lastTouchX - firstTouchX;
           var dy = lastTouchY - firstTouchY;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
@@ -797,7 +797,6 @@
         if(!clicked) {
           return;
         }
-        event.preventDefault();
         var now = new Date().getTime();
         if(now - lastMoved < 10) {
           return;
@@ -847,10 +846,10 @@
         window.removeEventListener('DOMContentLoaded', onDomContentLoaded);
         window.addEventListener('resize', function() {
           setupSize();
-          self.seekbar.seek(self.axis.currentPages[0].idx + 1, 30, true);
+          self.dispatchEvent_("resize");
         });
         setupSize();
-        self.seekbar.seek(self.axis.currentPages[0].idx + 1, 0, true);
+        self.dispatchEvent_("ready");
       };
       var onLoad = function() {
         window.removeEventListener('load', onLoad);
@@ -883,12 +882,12 @@
     /** @param {SeekBar} seekbar*/
     set seekbar(seekbar) {
       var self = this;
+      this.seekbar_ = seekbar;
       /** @param {number} value */
-      seekbar.onChanged = function(value) {
+      seekbar.addEventListener('changed', function(value) {
         self.seek_(self.chapter.pages[value-1]);
         self.render();
-      };
-      this.seekbar_ = seekbar;
+      });
     },
     /**
      * @param {string} name
@@ -924,17 +923,29 @@
       list.splice(idx, 1);
     },
     /**
+     * @param {string} name
+     * @protected
+     */
+    dispatchEvent_: function(name) {
+      /** @type {[function]} list */
+      var list = this.listeners_[name];
+      if(!list){
+        throw new Error("Unknown event name: " + name);
+      }
+      var args = [];
+      Array.prototype.push.apply(args, arguments);
+      args.shift();
+      for(var i = 0; i < list.length; i++) {
+        list[i].apply(null, args);
+      }
+    },
+    /**
      * @param {[number]} pages
      * @protected
      */
     onPageEnter_: function(pages) {
       if(pages.length > 0) {
-        /** @type {[function()]} listeners */
-        var listeners = this.listeners_['pageenter'];
-        for(var i = 0; i < listeners.length; i++) {
-          listeners[i](pages);
-        }
-        this.seekbar.move(pages[0]+1);
+        this.dispatchEvent_('pageenter', pages);
       }
     },
     get seekbar() {
@@ -1591,8 +1602,10 @@
             tracker.event('Viewer', 'SeekBy'+device, 'Backward', this.current_.pages[0].idx);
             return;
           } else {
-            viewer.seekbar.activate(viewer.seekbar.activePeriod);
-            tracker.event('Viewer', 'ActivateSeekbar', device, lastRelX);
+            if(viewer.seekbar) {
+              viewer.seekbar.activate(viewer.seekbar.activePeriod);
+              tracker.event('Viewer', 'ActivateSeekbar', device, lastRelX);
+            }
             // do not return, since the page might be moved by fingers/mouse pointers.
           }
         }
