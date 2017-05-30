@@ -1,15 +1,8 @@
-.PHONY: all get test clean
+.PHONY: build inst
 
-all:
-	mkdir -p .bin
-	gofmt -w .
-	go build -o .bin/make-catalog github.com/ledyba/minobi/make-catalog
+build:
+	browserify ./src/app.js -t babelify --outfile ./dist/app.js
 
-get:
-	nop
-
-test:
-	python -m SimpleHTTPServer
-
-clean:
-	go clean github.com/ledyba/minobi/...
+inst:
+	npm install --save-dev babel-cli
+	npm install --save-dev browserify

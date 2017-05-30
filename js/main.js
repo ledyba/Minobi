@@ -1,24 +1,20 @@
-(function(){
-  var Minobi = {};
-
+export class Tracker {
   /**
    * @param {string} id
-   * @constructor
    */
-  Minobi.Tracker = function(id) {
+  constructor(id) {
     this.id_ = id;
     this.name_ = 'Minobi_'+Math.random().toString(36).slice(-8);
     this.cmd_ = this.name_ + '.' + 'send';
     window.ga('create', id, 'auto', this.name_);
-  };
-  Minobi.Tracker.prototype = {
-    send: function track() {
-      if(window.ga) {
-        var args = Array.prototype.slice.call(arguments);
-        args.unshift(this.cmd_);
-        window.ga.apply(null, args);
-      }
-    },
+  }
+  send() {
+    if(window.ga) {
+      var args = Array.prototype.slice.call(arguments);
+      args.unshift(this.cmd_);
+      window.ga.apply(null, args);
+    }
+  }
     /**
      * @param {[number]} pages
      */
@@ -81,6 +77,22 @@
         exFatal: fatal
       });
     }
+
+}
+(function(){
+  var Minobi = {};
+
+  /**
+   * @param {string} id
+   * @constructor
+   */
+  Minobi.Tracker = function(id) {
+    this.id_ = id;
+    this.name_ = 'Minobi_'+Math.random().toString(36).slice(-8);
+    this.cmd_ = this.name_ + '.' + 'send';
+    window.ga('create', id, 'auto', this.name_);
+  };
+  Minobi.Tracker.prototype = {
 
   };
 
