@@ -1,3 +1,6 @@
+import { findTouchEvent, decodeBase64 } from './util';
+import { SeekBar } from './seekbar';
+
 export class Tracker {
   /**
    * @param {string} id
@@ -78,20 +81,6 @@ export class Tracker {
     });
   }
 }
-/**
- * @param {TouchList} touchList
- * @param {number} identifier
- * @returns {Touch} touch
- */
-export function findTouchEvent(touchList, identifier) {
-  // https://www.w3.org/TR/touch-events/
-  for (var i = 0; i < touchList.length; i++) {
-    if (touchList[i].identifier === identifier) {
-      return touchList[i];
-    }
-  }
-  return null;
-}
 
 export class Image {
   /**
@@ -105,7 +94,7 @@ export class Image {
     this.width = width;
     this.height = height;
     this.key = key || null;
-    /** @type {Minobi.ImageEntity} */
+    /** @type {ImageEntity} */
     this.entity = null;
 
     /** @type {HTMLImageElement} element */
@@ -123,7 +112,7 @@ export class Image {
 export class Page {
   /**
    * @param {number} idx
-   * @param {[Minobi.Image]} images
+   * @param {[Image]} images
    * @param {number} width
    * @param {number} height
    */
@@ -135,9 +124,9 @@ export class Page {
     this.images = images;
     this.width = width;
     this.height = height;
-    /** @type {Minobi.Page} */
+    /** @type {Page} */
     this.prev = null;
-    /** @type {Minobi.Page} */
+    /** @type {Page} */
     this.next = null;
     /** @type {HTMLDivElement} */
     this.elem = document.createElement('div');
@@ -221,27 +210,26 @@ export class Page {
   }
 }
 
-/**
- * @param {[Minobi.Page]} pages
- * @constructor
- */
 export class Face {
+  /**
+   * @param {[Page]} pages
+   */
   constructor(pages) {
-    /** @type {[Minobi.Page]} pages */
+    /** @type {[Page]} pages */
     this.pages = pages;
     /** @type {number} */
     this.scale_ = 1.0;
     /** @type {HTMLDivElement} */
     this.elem_ = document.createElement('div');
     this.elem_.className = 'manga-face';
-    /** @type {Minobi.Page} */
+    /** @type {Page} */
     this.prevPage = pages[0].prev;
-    /** @type {Minobi.Page} */
+    /** @type {Page} */
     this.nextPage = pages[pages.length - 1].next;
 
-    /** @type {Minobi.Face} */
+    /** @type {Face} */
     this.next = null;
-    /** @type {Minobi.Face} */
+    /** @type {Face} */
     this.prev = null;
 
     this.width = 0;
@@ -334,12 +322,12 @@ export class Face {
   get y() {
     return this.y_;
   }
-  /** @type {Minobi.Face} next */
+  /** @type {Face} next */
   linkNext(next) {
     this.next = next;
     this.next.prev = this;
   }
-  /** @type {Minobi.Face} prev */
+  /** @type {Face} prev */
   linkPrev(prev) {
     this.prev = prev;
     this.prev.next = this;
@@ -372,7 +360,7 @@ export class Face {
     }
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    */
   render(cache, container) {
@@ -386,7 +374,7 @@ export class Face {
 
 export class Chapter {
   /**
-   * @param {Minobi.Page[]} pages
+   * @param {Page[]} pages
    */
   constructor(pages) {
     this.pages = pages
@@ -394,14 +382,18 @@ export class Chapter {
 }
 
 export class ImageCache {
-  MAX_IMAGE = 20;
+  static get MAX_IMAGE() {
+    return 20;
+  }
   // We need more than or equal to 6 workers
   // because we need 6 images at once.
   // 3 faces (Prev/Current/Next) * 2 images(for each pages)
-  MAX_WORKER = 6;
+  static get MAX_WORKER() {
+    return 6;
+  }
   /**
-   * @param {Minobi.Viewer} viewer
-   * @param {Minobi.Chapter} chapter
+   * @param {Viewer} viewer
+   * @param {Chapter} chapter
    */
   constructor(viewer, chapter) {
     this.viewer_ = viewer;
@@ -409,17 +401,17 @@ export class ImageCache {
     this.chapter_ = chapter;
     /** @type {[Image]} */
     this.cacheList_ = [];
-    /** @type {[Minobi.ImageLoader]} */
+    /** @type {[ImageLoader]} */
     this.workers_ = [];
     this.workerIdx_ = 0;
-    for (var i = 0; i < Minobi.ImageCache.MAX_WORKER; i++) {
-      this.workers_.push(new Minobi.ImageLoader(this, this.tracker_));
+    for (var i = 0; i < ImageCache.MAX_WORKER; i++) {
+      this.workers_.push(new ImageLoader(this, this.tracker_));
     }
     /** @type {Object.<string, boolean>} this.xhr_ */
     this.enqueued_ = {};
   }
   /**
-   * @param {Minobi.Page} page
+   * @param {Page} page
    */
   enqueue(page) {
     for (var i = 0; i < page.images.length; i++) {
@@ -440,12 +432,12 @@ export class ImageCache {
         this.enqueued_[img.url] = true;
         // Tell a worker to load the image with Ajax.
         this.workers_[this.workerIdx_].load(img);
-        this.workerIdx_ = (this.workerIdx_ + 1) % Minobi.ImageCache.MAX_WORKER;
+        this.workerIdx_ = (this.workerIdx_ + 1) % ImageCache.MAX_WORKER;
       }
     }
   }
   /**
-   * @param {Minobi.Image} img
+   * @param {Image} img
    */
   clear(img) {
     if (img.element) {
@@ -454,8 +446,8 @@ export class ImageCache {
     }
   }
   /**
-   * @param {Minobi.Image} img
-   * @param {Minobi.ImageEntity} entity
+   * @param {Image} img
+   * @param {ImageEntity} entity
    */
   onLoaded(img, entity) {
     this.tracker_.event('ImageCache', 'LoadSucceed', img.url);
@@ -464,20 +456,20 @@ export class ImageCache {
     img.entity = entity;
     this.cacheList_.push(img);
     // Remove the least recent used image.
-    if (this.cacheList_.length > Minobi.ImageCache.MAX_IMAGE) {
+    if (this.cacheList_.length > ImageCache.MAX_IMAGE) {
       var removedImage = this.cacheList_.shift();
       removedImage.clear();
     }
   }
   /**
-   * @param {Minobi.Image} img
+   * @param {Image} img
    */
   onAborted(img) {
     this.tracker_.event('ImageCache', 'LoadAborted', img.url);
     delete this.enqueued_[img.url];
   }
   /**
-   * @param {Minobi.Image} img
+   * @param {Image} img
    */
   onError(img) {
     this.tracker_.event('ImageCache', 'LoadFailed', img.url);
@@ -487,8 +479,8 @@ export class ImageCache {
 
 export class ImageLoader {
   /**
-   * @param {Minobi.ImageCache} cache
-   * @param {Minobi.Tracker} tracker
+   * @param {ImageCache} cache
+   * @param {Tracker} tracker
    */
   constructor(cache, tracker) {
     /** @type {XMLHttpRequest} this.xhr_ */
@@ -497,7 +489,7 @@ export class ImageLoader {
     this.tracker_ = tracker;
   }
   /**
-   * @param {Minobi.Image} img
+   * @param {Image} img
    */
   load(img) {
     var start = new Date().getTime();
@@ -524,12 +516,12 @@ export class ImageLoader {
         self.cache_.onError(img);
         return;
       }
-      var dat = Minobi.decodeBase64(arr[1]);
+      var dat = decodeBase64(arr[1]);
       var type = meta[2];
       if (img.key) {
         decode(dat);
       }
-      self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
+      self.cache_.onLoaded(img, new ImageEntity(dat, type));
       return;
     }
     if (this.xhr_) {
@@ -554,7 +546,7 @@ export class ImageLoader {
             decode(dat);
             self.tracker_.timing('ImageLoader', 'Decoding', new Date().getTime() - start, img.url);
           }
-          self.cache_.onLoaded(img, new Minobi.ImageEntity(dat, type));
+          self.cache_.onLoaded(img, new ImageEntity(dat, type));
         } else {
           console.error("We can't load file: ", img.url, xhr);
           self.tracker_.timing('ImageLoader', 'LoadingFailed', new Date().getTime() - start, img.url);
@@ -598,15 +590,15 @@ export class ImageEntity {
 export class Viewer {
   /**
    * @param {HTMLDivElement} container
-   * @param {Minobi.Tracker} tracker
-   * @param {Minobi.Chapter} chapter
+   * @param {Tracker} tracker
+   * @param {Chapter} chapter
    */
   constructor(container, tracker, chapter) {
     /** @type {HTMLDivElement} */
     this.container_ = container;
     this.tracker = tracker;
     this.chapter = chapter;
-    this.cache_ = new Minobi.ImageCache(this, chapter);
+    this.cache_ = new ImageCache(this, chapter);
 
     // Axis
     this.axis = this.makeHorizontalAxis();
@@ -646,7 +638,7 @@ export class Viewer {
   }
 
   /**
-   * @param {function(Minobi.Viewer)} clbk
+   * @param {function(Viewer)} clbk
    */
   init(clbk) {
     var self = this;
@@ -783,7 +775,7 @@ export class Viewer {
         return;
       }
       lastMoved = now;
-      var ntouch = Minobi.findTouchEvent(event.touches, touch.identifier);
+      var ntouch = findTouchEvent(event.touches, touch.identifier);
       if (!ntouch) {
         return;
       }
@@ -854,7 +846,7 @@ export class Viewer {
     this.axis.render(this.cache_, this.container_);
   }
   /**
-   * @param {Minobi.Page} page
+   * @param {Page} page
    * @private
    */
   seek_(page) {
@@ -936,17 +928,17 @@ export class Viewer {
   get container() {
     return this.container_;
   }
-  /** @returns {Minobi.ImageCache} cache */
+  /** @returns {ImageCache} cache */
   get cache() {
     return this.cache_;
   }
   makeHorizontalAxis() {
-    var axis = new Minobi.HorizontalAxis(this.tracker, this.chapter);
+    var axis = new HorizontalAxis(this.tracker, this.chapter);
     axis.addEventListener('pageenter', this.onPageEnter_.bind(this));
     return axis;
   }
   makeVertivalAxis() {
-    return new Minobi.VerticalAxis(this.chapter);
+    return new VerticalAxis(this.chapter);
   }
 }
 
@@ -955,8 +947,8 @@ export class Viewer {
  */
 export class Axis {
   /**
-   * @param {Minobi.Tracker} tracker
-   * @param {Minobi.Chapter} chapter
+   * @param {Tracker} tracker
+   * @param {Chapter} chapter
    * @constructor
    */
   constructor(tracker, chapter) {
@@ -968,52 +960,52 @@ export class Axis {
     this.listeners_['pageenter'] = [];
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    * @abstract
    */
   seek(cache, container, page) {
-    throw new Error("Please implement Minobi.Axis.seek");
+    throw new Error("Please implement Axis.seek");
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @abstract
    */
   render(cache, container) {
-    throw new Error("Please implement Minobi.Axis.render");
+    throw new Error("Please implement Axis.render");
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    */
   onUp(viewer) {
     return false;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    */
   onDown(viewer) {
     return false;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    */
   onLeft(viewer) {
     return false;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    */
   onRight(viewer) {
     return false;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @param {number} dx
    * @param {number} dy
    * @return {boolean} reload
@@ -1022,13 +1014,13 @@ export class Axis {
     return false;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @param {HTMLDivElement} container
    */
   onResize(viewer, container) {
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @param {string} device
    * @param {boolean} isTap
    * @param {number} transitionArea
@@ -1042,7 +1034,7 @@ export class Axis {
     return false;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    */
   onMoveStart(viewer) {
     return false;
@@ -1098,7 +1090,7 @@ export class Axis {
     }
   }
   /**
-   * @returns {Minobi.Page[]} pages
+   * @returns {Page[]} pages
    */
   get currentPages() {
     return [];
@@ -1113,12 +1105,12 @@ export class Axis {
 
 export class HorizontalAxis extends Axis {
   /**
-   * @param {Minobi.Tracker} tracker
-   * @param {Minobi.Chapter} chapter
+   * @param {Tracker} tracker
+   * @param {Chapter} chapter
    */
   constructor(tracker, chapter) {
     super(tracker, chapter);
-    /** @type {Minobi.Face} */
+    /** @type {Face} */
     this.current_ = null;
     /** @type {number} */
     this.pos_ = 0;
@@ -1126,27 +1118,27 @@ export class HorizontalAxis extends Axis {
     this.speed_ = 0;
     /** @type {number} */
     this.timer = 0;
-    /** @type {[Minobi.Face]} */
+    /** @type {[Face]} */
     this.attachQueue_ = [];
-    /** @type {[Minobi.Face]} */
+    /** @type {[Face]} */
     this.detachQueue_ = [];
   }
   /**
    * @name IMakeCurrentFace
-   * @param {Minobi.Page}
-   * @return {Minobi.Face}
+   * @param {Page}
+   * @return {Face}
    */
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    * @param {IMakeCurrentFace} makeCurrentFace
    * @override
    */
   seekInternal_(cache, container, page, makeCurrentFace) {
-    /** @type {[Minobi.Face]} */
+    /** @type {[Face]} */
     var current = [];
-    /** @type {[Minobi.Face]} */
+    /** @type {[Face]} */
     var updated = [];
     if (this.current_) {
       current.push(this.current_);
@@ -1161,7 +1153,7 @@ export class HorizontalAxis extends Axis {
       }
     }
     //
-    /** @param {Minobi.Face} face */
+    /** @param {Face} face */
     var reuseFaceIfNecessary = function (face) {
       for (var i = 0; i < current.length; i++) {
         var cur = current[i];
@@ -1237,18 +1229,18 @@ export class HorizontalAxis extends Axis {
     this.detachQueue_.splice(0, this.detachQueue_.length);
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    * @override
    */
   seek(cache, container, page) {
     this.seekInternal_(cache, container, page, this.makeFace_.bind(this, container));
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    * @override
    */
   seekPrev(cache, container, page) {
@@ -1257,7 +1249,7 @@ export class HorizontalAxis extends Axis {
 
   /**
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    */
   makeFace_(container, page) {
     page.transform(this.calcScale_(container, page), 0, 0);
@@ -1266,21 +1258,21 @@ export class HorizontalAxis extends Axis {
       next.transform(this.calcScale_(container, next), 0, 0);
       if (next.scaledWidth + page.scaledWidth <= container.clientWidth_) {
         // make a face with 2 pages.
-        var face = new Minobi.Face([page, next]);
+        var face = new Face([page, next]);
         face.layout(container);
         this.tracker_.event('Viewer', 'MultiplePages', 'Forward', page.idx);
         return face;
       }
     }
     // make a face with a single page.
-    var face = new Minobi.Face([page]);
+    var face = new Face([page]);
     face.layout(container);
     this.tracker_.event('Viewer', 'SinglePages', 'Forward', page.idx);
     return face;
   }
   /**
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    */
   makePrevFace_(container, page) {
     page.transform(this.calcScale_(container, page), 0, 0);
@@ -1289,21 +1281,21 @@ export class HorizontalAxis extends Axis {
       prev.transform(this.calcScale_(container, prev), 0, 0);
       if (prev.scaledWidth + page.scaledWidth <= container.clientWidth_) {
         // make a face with 2 pages.
-        var face = new Minobi.Face([prev, page]);
+        var face = new Face([prev, page]);
         face.layout(container);
         this.tracker_.event('Viewer', 'MultiplePages', 'Backward', page.idx);
         return face;
       }
     }
     // make a face with a single page.
-    var face = new Minobi.Face([page]);
+    var face = new Face([page]);
     face.layout(container);
     this.tracker_.event('Viewer', 'SinglePages', 'Backward', page.idx);
     return face;
   }
   /**
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    */
   calcScale_(container, page) {
     return Math.min(container.clientWidth_ / page.width, container.clientHeight_ / page.height);
@@ -1328,14 +1320,14 @@ export class HorizontalAxis extends Axis {
     return pages;
   }
   /**
-   * @param {Minobi.Face} face
+   * @param {Face} face
    * @protected
    */
   addAttachQueue(face) {
     this.attachQueue_.push(face);
   }
   /**
-   * @param {Minobi.Face} face
+   * @param {Face} face
    */
   addDetachQueue(face) {
     this.detachQueue_.push(face);
@@ -1355,7 +1347,7 @@ export class HorizontalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @override
    */
@@ -1433,7 +1425,7 @@ export class HorizontalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @param {HTMLDivElement} container
    */
   onResize(viewer, container) {
@@ -1458,7 +1450,7 @@ export class HorizontalAxis extends Axis {
     viewer.seekbar.seekablePages = seekable;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    * @override
    */
@@ -1474,7 +1466,7 @@ export class HorizontalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    * @override
    */
@@ -1490,7 +1482,7 @@ export class HorizontalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @param {number} dx
    * @param {number} dy
    * @return {boolean} reload
@@ -1505,7 +1497,7 @@ export class HorizontalAxis extends Axis {
     return true;
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @override
    */
   onMoveStart(viewer) {
@@ -1515,7 +1507,7 @@ export class HorizontalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @param {string} device
    * @param {boolean} isTap
    * @param {number} transitionArea
@@ -1561,7 +1553,7 @@ export class HorizontalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @private
    */
@@ -1600,7 +1592,7 @@ export class HorizontalAxis extends Axis {
   }
   /**
    * @param {boolean} next
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    */
   anim_(next, cache, container) {
@@ -1636,30 +1628,30 @@ export class HorizontalAxis extends Axis {
 // TODO: 縦の実装
 export class VerticalAxis extends Axis {
   /**
-   * @param {Minobi.Tracker} tracker
-   * @param {Minobi.Chapter} chapter
+   * @param {Tracker} tracker
+   * @param {Chapter} chapter
    */
   constructor(tracker, chapter) {
     super(tracker, chapter);
   }
 
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
-   * @param {Minobi.Page} page
+   * @param {Page} page
    * @override
    */
   seek(cache, container, page) {
   }
   /**
-   * @param {Minobi.ImageCache} cache
+   * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @override
    */
   render(cache, container) {
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    * @override
    */
@@ -1672,7 +1664,7 @@ export class VerticalAxis extends Axis {
     }
   }
   /**
-   * @param {Minobi.Viewer} viewer
+   * @param {Viewer} viewer
    * @return {boolean} reload
    */
   onUp(viewer) {
@@ -1685,56 +1677,42 @@ export class VerticalAxis extends Axis {
   }
 }
 
+// - ENTRY POINT -
+
 /**
  * @param {HTMLDivElement} container
  * @param {string} trackID
  * @param {[{images: [{path: string, width: number, height:number, key: (undefined|string)}], width: number, height:number}]} chapterDef
- * @param {function(Minobi.Viewer)} clbk
+ * @param {function(Viewer)} clbk
  */
 export function init(container, trackID, chapterDef, clbk) {
   var startInit = new Date().getTime();
-  /** @type {[Minobi.Page]} */
+  /** @type {[Page]} */
   var pages = [];
-  var tracker = new Minobi.Tracker(trackID);
+  var tracker = new Tracker(trackID);
   for (var i = 0; i < chapterDef.length; i++) {
     var pageDef = chapterDef[i];
-    /** @type {[Minobi.Image]} */
+    /** @type {[Image]} */
     var images = [];
     for (var j = 0; j < pageDef.images.length; j++) {
       var imgDef = pageDef.images[j];
       var key = null;
       if (imgDef.key) {
-        key = Minobi.decodeBase64(imgDef.key);
+        key = decodeBase64(imgDef.key);
       }
-      var image = new Minobi.Image(imgDef.path, imgDef.width, imgDef.height, key);
+      var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
       images.push(image);
     }
-    var page = new Minobi.Page(i, images, pageDef.width, pageDef.height);
+    var page = new Page(i, images, pageDef.width, pageDef.height);
     pages.push(page);
     if (i > 0) {
       pages[i - 1].next = page;
       page.prev = pages[i - 1];
     }
   }
-  var viewer = new Minobi.Viewer(container, tracker, new Minobi.Chapter(pages));
+  var viewer = new Viewer(container, tracker, new Chapter(pages));
   viewer.init(clbk);
   tracker.pageview();
   var time = new Date().getTime() - startInit;
   tracker.timing('Init', 'Setup Viewer', time);
 }
-
-/**
- * @param {string} str
- * @returns {Uint8Array} array
- */
-export function decodeBase64(str) {
-  var raw = window.atob(str);
-  var rawLength = raw.length;
-  var array = new Uint8Array(new ArrayBuffer(rawLength));
-  for (var i = 0; i < rawLength; i++) {
-    array[i] = raw.charCodeAt(i);
-  }
-  return array;
-}
-
-
