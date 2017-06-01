@@ -125,43 +125,29 @@ export class Page {
     this.scale_ = 1;
     this.x_ = 0;
     this.y_ = 0;
-    this.images = images;
     this.width = width;
     this.height = height;
     /** @type {Page} */
     this.prev = null;
     /** @type {Page} */
     this.next = null;
-    /** @type {HTMLDivElement} */
-    this.elem = document.createElement('div');
-    this.elem.className = 'manga-page';
-    this.elem.style.width = this.width + 'px';
-    this.elem.style.height = this.height + 'px';
-    this.elem.style.left = '0px';
-    this.elem.style.top = '0px';
-    this.elem.style.transformOrigin = '0% 0%';
-    this.elem.style['-webkit-transformOrigin'] = '0% 0%';
-    /** @type {!HTMLDivElement[]} */
-    this.imageContainers = [];
-    var left = 0;
-    for (var i = 0; i < this.images.length; i++) {
-      /** @type {HTMLImageElement} */
-      var img = images[i];
-      var elem = img.element;
-      elem.classList.add('manga-image');
-      this.imageContainers.push(elem);
-      this.elem.appendChild(elem);
-      elem.style.left = left + 'px';
-      left += img.width;
-    }
+  }
+  /** 
+   * @type {HTMLDivElement}
+   * @abstract
+   */
+  get elem() {
+    throw new Error("Please implement");
   }
   get attached() {
-    return !this.elem || !!this.elem.parentElement;
+    var e = this.elem;
+    return !e || !!e.parentElement;
   }
   /**
    * @param {HTMLDivElement} container
    */
   attach(container) {
+    var e = this.elem;
     if (!this.elem) {
       console.error("Null elem.");
       return;
@@ -211,6 +197,44 @@ export class Page {
   /** @return {number} scaledHeight */
   get scaledHeight() {
     return this.scale_ * this.height;
+  }
+}
+
+export class ImagePage {
+  /**
+   * @param {number} idx
+   * @param {number} width
+   * @param {number} height
+   * @param {[Image]} images
+   */
+  constructor(idx, width, height, images) {
+    super(idx, width, height);
+    this.images = images;
+    /** @type {HTMLDivElement} */
+    var elem = this.elem_ = document.createElement('div');
+    elem.className = 'manga-page';
+    elem.style.width = this.width + 'px';
+    elem.style.height = this.height + 'px';
+    elem.style.left = '0px';
+    elem.style.top = '0px';
+    elem.style.transformOrigin = '0% 0%';
+    elem.style['-webkit-transformOrigin'] = '0% 0%';
+    var left = 0;
+    for (var i = 0; i < this.images.length; i++) {
+      /** @type {HTMLImageElement} */
+      var img = images[i];
+      var ielm = img.element;
+      ielm.classList.add('manga-image');
+      elem.appendChild(ielm);
+      ielm.style.left = left + 'px';
+      left += img.width;
+    }
+  }
+  /**
+   * @override
+   */
+  get elem(){
+    return this.elem_;
   }
 }
 
