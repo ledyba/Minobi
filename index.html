@@ -31,8 +31,7 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
 <script async src='https://www.google-analytics.com/analytics.js'></script>
 <!-- End Google Analytics -->
 
-  <script src="js/main.js"></script>
-  <script src="js/seekbar.js"></script>
+  <script src="js/app.js"></script>
   <script>
     /* global Minobi SeekBar */
     var chapter = [{"images":[{"path":"001.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"002.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"003.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"004.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"005.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"006.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"007.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"008.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"009.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"010.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"011.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"012.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"013.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"014.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"015.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images":[{"path":"016.jpg","width":533,"height":800,"key":"v94hakhDQKx9wTvTzTihqes4IsTuSs3J3SHUSWmVso8="}],"width":533,"height":800},{"images": [{"path": "data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==", "width":533,"height":800}], "width":533,"height":800}];
@@ -47,7 +46,7 @@ window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
           };
 
           // Make seekbar.
-          var seekbar = new SeekBar(
+          var seekbar = new Minobi.SeekBar(
             viewer,
             document.getElementById("minobi-seekbar"),
             document.getElementById("minobi-seekbar-button"),

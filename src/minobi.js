@@ -1,5 +1,5 @@
-import { findTouchEvent, decodeBase64 } from './util';
-import { SeekBar } from './seekbar';
+import { findTouchEvent, decodeBase64 } from './util.js';
+import { SeekBar } from './seekbar.js';
 
 export class Tracker {
   /**
@@ -13,6 +13,7 @@ export class Tracker {
   }
   send() {
     if (window.ga) {
+      /** @type {[any]} */
       var args = Array.prototype.slice.call(arguments);
       args.unshift(this.cmd_);
       window.ga.apply(null, args);
@@ -109,14 +110,17 @@ export class Image {
   }
 }
 
+/**
+ * @abstract
+ */
 export class Page {
   /**
    * @param {number} idx
-   * @param {[Image]} images
    * @param {number} width
    * @param {number} height
+   * @param {[Image]} images
    */
-  constructor(idx, images, width, height) {
+  constructor(idx, width, height, images) {
     this.idx = idx;
     this.scale_ = 1;
     this.x_ = 0;
@@ -1703,7 +1707,7 @@ export function init(container, trackID, chapterDef, clbk) {
       var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
       images.push(image);
     }
-    var page = new Page(i, images, pageDef.width, pageDef.height);
+    var page = new Page(i, pageDef.width, pageDef.height, images);
     pages.push(page);
     if (i > 0) {
       pages[i - 1].next = page;
