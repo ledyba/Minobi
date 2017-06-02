@@ -4,6 +4,8 @@
 
 # Sample
 
+Here: ttps://ledyba.github.io/Minobi/
+
 [![screenshot](sample.jpg)](https://ledyba.github.io/Minobi/)
 
 All artworks come from [妖精⊸ロケット(fairy⊸rocket)](https://hexe.net/), painted by [@ledyba](https://github.com/ledyba) and [@momiji-san](https://github.com/momiji-san). Licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed).
@@ -32,6 +34,18 @@ make inst
 ```
 
 # How to use
+
+## Compile
+
+ If you modify sources, you need to recompile sources for browsers.
+
+ To recompile,
+
+```
+`npm bin`/webpack
+# or, just
+make
+```
 
 ## Load a book
 
@@ -85,7 +99,8 @@ seekbar.addEventListener('deactivated', function(){
 #### transitionAreaRatio
 
 ```js
-var viewer = new Minobi.Viewer(/*...*/);
+/** @type {Minobi.Viewer} */
+var viewer;
 /**
  * @type {number} transitionAreaRatioForTouch
  * [non-dimension] MUST BE IN [0, 0.5]
