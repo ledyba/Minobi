@@ -4,7 +4,7 @@
 
 # Sample
 
-Here: ttps://ledyba.github.io/Minobi/
+Here: https://ledyba.github.io/Minobi/
 
 [![screenshot](sample.jpg)](https://ledyba.github.io/Minobi/)
 
