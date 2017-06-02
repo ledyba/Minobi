@@ -2,6 +2,12 @@
 
  Minobi is a HTML5 mange player.
 
+# Sample
+
+[![](sample.jpg)](https://ledyba.github.io/Minobi/)
+
+All artworks come from [妖精⊸ロケット(fairy⊸rocket)](https://hexe.net/), drawn by @ledyba and @momiji-san. Licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed).
+
 # Requirement
 
 ## Supported browsers
