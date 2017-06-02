@@ -49,7 +49,7 @@ make
 
 ## Load a book
 
-Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html). In a nutshell, you need to prepare "chapter" object that contains information about the book.
+Please see [example](https://github.com/ledyba/Minobi/blob/master/index.html). In a nutshell, you need to prepare "chapter" object that contains information about the book.
 
 ## Event handling
 
