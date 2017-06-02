@@ -1,1 +1,156 @@
-[{"images":[{"path":"manga/01.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/02.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/03.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/04.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/05.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/06.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/07.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/08.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/09.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/10.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/11.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/12.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/13.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/14.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/15.jpg","width":533,"height":800}],"width":533,"height":800},{"images":[{"path":"manga/16.jpg","width":533,"height":800}],"width":533,"height":800}]
+[
+  {
+    "images": [
+      {
+        "path": "sample/01.jpg",
+        "width": 1240,
+        "height": 1744
+      }
+    ],
+    "width": 1240,
+    "height": 1744
+  },
+  {
+    "images": [
+      {
+        "path": "sample/02.jpg",
+        "width": 1240,
+        "height": 1744
+      }
+    ],
+    "width": 1240,
+    "height": 1744
+  },
+  {
+    "images": [
+      {
+        "path": "sample/03.jpg",
+        "width": 1240,
+        "height": 1741
+      }
+    ],
+    "width": 1240,
+    "height": 1741
+  },
+  {
+    "images": [
+      {
+        "path": "sample/04.jpg",
+        "width": 1240,
+        "height": 1756
+      }
+    ],
+    "width": 1240,
+    "height": 1756
+  },
+  {
+    "images": [
+      {
+        "path": "sample/05.jpg",
+        "width": 1240,
+        "height": 1734
+      }
+    ],
+    "width": 1240,
+    "height": 1734
+  },
+  {
+    "images": [
+      {
+        "path": "sample/06.jpg",
+        "width": 1240,
+        "height": 1722
+      }
+    ],
+    "width": 1240,
+    "height": 1722
+  },
+  {
+    "images": [
+      {
+        "path": "sample/07.jpg",
+        "width": 1240,
+        "height": 1738
+      }
+    ],
+    "width": 1240,
+    "height": 1738
+  },
+  {
+    "images": [
+      {
+        "path": "sample/08.jpg",
+        "width": 1240,
+        "height": 1738
+      }
+    ],
+    "width": 1240,
+    "height": 1738
+  },
+  {
+    "images": [
+      {
+        "path": "sample/09.jpg",
+        "width": 1240,
+        "height": 1733
+      }
+    ],
+    "width": 1240,
+    "height": 1733
+  },
+  {
+    "images": [
+      {
+        "path": "sample/10.jpg",
+        "width": 1240,
+        "height": 1748
+      }
+    ],
+    "width": 1240,
+    "height": 1748
+  },
+  {
+    "images": [
+      {
+        "path": "sample/11.jpg",
+        "width": 1240,
+        "height": 1739
+      }
+    ],
+    "width": 1240,
+    "height": 1739
+  },
+  {
+    "images": [
+      {
+        "path": "sample/12.jpg",
+        "width": 1240,
+        "height": 1397
+      }
+    ],
+    "width": 1240,
+    "height": 1397
+  },
+  {
+    "images": [
+      {
+        "path": "sample/13.jpg",
+        "width": 1240,
+        "height": 1749
+      }
+    ],
+    "width": 1240,
+    "height": 1749
+  },
+  {
+    "images": [
+      {
+        "path": "sample/14.jpg",
+        "width": 1240,
+        "height": 1748
+      }
+    ],
+    "width": 1240,
+    "height": 1748
+  }
+]

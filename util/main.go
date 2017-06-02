@@ -75,8 +75,9 @@ func main() {
 	log.Printf("Reading: %s", dirName)
 	fileInfos, err := ioutil.ReadDir(dirName)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("FATAL: ", err)
 	}
+	log.Printf("%d files.", len(fileInfos))
 	var files = make([]os.FileInfo, 0)
 	for _, info := range fileInfos {
 		if !info.IsDir() {
@@ -94,10 +95,9 @@ func main() {
 		}
 		pages = append(pages, page)
 	}
-	bs, err := json.Marshal(pages)
+	bs, err := json.MarshalIndent(pages, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
 	os.Stdout.Write(bs)
-
 }
