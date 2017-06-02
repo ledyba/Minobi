@@ -1,6 +1,6 @@
-# Minobi(蓑火) - A HTML5 Manga Player
+# Minobi(蓑火) - A HTML5 Book Player
 
- Minobi is a HTML5 mange player.
+ Minobi is a HTML5 book player.
 
 # Sample
 
