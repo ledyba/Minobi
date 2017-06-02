@@ -122,15 +122,18 @@ export class Page {
    */
   constructor(idx, width, height, images) {
     this.idx = idx;
-    this.scale_ = 1;
-    this.x_ = 0;
-    this.y_ = 0;
     this.width = width;
     this.height = height;
     /** @type {Page} */
     this.prev = null;
     /** @type {Page} */
     this.next = null;
+    /** @private */
+    this.scale_ = 1;
+    /** @private */
+    this.x_ = 0;
+    /** @private */
+    this.y_ = 0;
   }
   /** 
    * @type {HTMLDivElement}
@@ -138,6 +141,12 @@ export class Page {
    */
   get elem() {
     throw new Error("Please implement");
+  }
+  /** 
+   * @type {[Image]}
+   */
+  get images() {
+    return null;
   }
   get attached() {
     var e = this.elem;
@@ -148,35 +157,37 @@ export class Page {
    */
   attach(container) {
     var e = this.elem;
-    if (!this.elem) {
+    if (!e) {
       console.error("Null elem.");
       return;
-    } else if (container === this.elem.parentElement) {
+    } else if (container === e.parentElement) {
       console.warn("already attached");
       return;
     }
-    container.appendChild(this.elem);
+    container.appendChild(e);
   }
   /**
    * @param {HTMLDivElement} container
    */
   detach(container) {
-    if (!this.elem) {
+    var e = this.elem;
+    if (!e) {
       console.error("Null elem.");
       return;
-    } else if (container !== this.elem.parentElement) {
+    } else if (container !== e.parentElement) {
       console.warn("already detached");
       return;
     }
-    container.removeChild(this.elem);
+    container.removeChild(e);
   }
   transform(scale, dx, dy) {
+    var e = this.elem;
     this.scale_ = scale;
     this.x_ = dx;
     this.y_ = dy;
     var trans = 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
-    this.elem.style.transform = trans;
-    this.elem.style['-webkit-transform'] = trans;
+    e.style.transform = trans;
+    e.style['-webkit-transform'] = trans;
   }
   /** @return {number} scale */
   get scale() {
@@ -209,9 +220,10 @@ export class ImagePage {
    */
   constructor(idx, width, height, images) {
     super(idx, width, height);
-    this.images = images;
+    this.images_ = images;
     /** @type {HTMLDivElement} */
-    var elem = this.elem_ = document.createElement('div');
+    var elem = document.createElement('div');
+    this.elem_ = elem;
     elem.className = 'manga-page';
     elem.style.width = this.width + 'px';
     elem.style.height = this.height + 'px';
@@ -220,7 +232,7 @@ export class ImagePage {
     elem.style.transformOrigin = '0% 0%';
     elem.style['-webkit-transformOrigin'] = '0% 0%';
     var left = 0;
-    for (var i = 0; i < this.images.length; i++) {
+    for (var i = 0; i < images.length; i++) {
       /** @type {HTMLImageElement} */
       var img = images[i];
       var ielm = img.element;
@@ -233,8 +245,14 @@ export class ImagePage {
   /**
    * @override
    */
-  get elem(){
+  get elem() {
     return this.elem_;
+  }
+  /**
+   * @override
+   */
+  get images() {
+    return this.images_;
   }
 }
 
@@ -442,8 +460,13 @@ export class ImageCache {
    * @param {Page} page
    */
   enqueue(page) {
-    for (var i = 0; i < page.images.length; i++) {
-      var img = page.images[i];
+    /** @type {[Image]} */
+    var images = page.images;
+    if (!images || images.length <= 0) {
+      return;
+    }
+    for (var i = 0; i < images.length; i++) {
+      var img = images[i];
       if (img.entity) {
         this.tracker_.event('ImageCache', 'Hit', img.url);
         // already loaded. push to the front of the list.
@@ -1731,7 +1754,7 @@ export function init(container, trackID, chapterDef, clbk) {
       var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
       images.push(image);
     }
-    var page = new Page(i, pageDef.width, pageDef.height, images);
+    var page = new ImagePage(i, pageDef.width, pageDef.height, images);
     pages.push(page);
     if (i > 0) {
       pages[i - 1].next = page;
