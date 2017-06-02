@@ -4,9 +4,9 @@
 
 # Sample
 
-[![](sample.jpg)](https://ledyba.github.io/Minobi/)
+[![screenshot](sample.jpg)](https://ledyba.github.io/Minobi/)
 
-All artworks come from [妖精⊸ロケット(fairy⊸rocket)](https://hexe.net/), drawn by @ledyba and @momiji-san. Licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed).
+All artworks come from [妖精⊸ロケット(fairy⊸rocket)](https://hexe.net/), painted by [@ledyba](https://github.com/ledyba) and [@momiji-san](https://github.com/momiji-san). Licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed).
 
 # Requirement
 
@@ -15,13 +15,27 @@ All artworks come from [妖精⊸ロケット(fairy⊸rocket)](https://hexe.net
  - Latest Chrome.
 
 ## Dependencies
+
+### For client
  Minobi does not depend on any external libraries or frameworks.
+
+### For development
+
+ Minobi uses npm, babel, webpack to transpile from es6 to es4.
+
+ To install,
+
+```sh
+npm install --save-dev webpack babel-loader babel-preset-es2015
+# or
+make inst
+```
 
 # How to use
 
-## Load a manga
+## Load a book
 
-Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html)
+Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html). In a nutshell, you need to prepare "chapter" object that contains information about the book.
 
 ## Event handling
 
