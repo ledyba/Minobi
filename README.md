@@ -39,7 +39,7 @@ Please see [example](https://github.com/ledyba/Minobi/blob/master/web/index.html
 
 ## Event handling
 
-###Viewer
+### Viewer
 
 #### pageenter
 
