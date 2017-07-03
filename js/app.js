@@ -1931,10 +1931,9 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       }
 
       // set opacity and scale for animation, then render faces.
-      this.current_.opacity = 1 - this.pos_;
-      this.current_.transform((1 - this.pos_) * 0.25 + 0.75, 0, 0);
-      this.current_.render(cache, container);
       this.current_.opacity = 1;
+      this.current_.transform(1, this.pos_ * container.clientWidth_, 0);
+      this.current_.render(cache, container);
       if (this.current_.next) {
         this.current_.next.transform(1, (this.pos_ - 1) * container.clientWidth_, 0);
         this.current_.next.render(cache, container);
@@ -2024,7 +2023,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
     value: function onMove(viewer, dx, dy) {
       var cache = viewer.cache;
       var container = viewer.container;
-      var deltaX = dx / this.current_.width;
+      var deltaX = dx / container.clientWidth_;
       this.pos_ += deltaX;
       this.render(cache, container);
       return true;

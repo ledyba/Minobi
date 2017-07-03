@@ -3,8 +3,8 @@
 all: build
 
 test:
-	open http://localhost:8080/
-	`npm bin`/webpack-dev-server --progress --colors
+	echo http://localhost:8080/
+	`npm bin`/webpack-dev-server --progress --colors --content-base .
 
 build: js/app.js
 
