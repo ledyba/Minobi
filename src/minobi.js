@@ -135,14 +135,14 @@ export class Page {
     /** @private */
     this.y_ = 0;
   }
-  /** 
+  /**
    * @type {HTMLDivElement}
    * @abstract
    */
   get elem() {
     throw new Error("Please implement");
   }
-  /** 
+  /**
    * @type {[Image]}
    */
   get images() {
@@ -211,7 +211,7 @@ export class Page {
   }
 }
 
-export class ImagePage {
+export class ImagePage extends Page{
   /**
    * @param {number} idx
    * @param {number} width
@@ -253,6 +253,42 @@ export class ImagePage {
    */
   get images() {
     return this.images_;
+  }
+}
+
+export class HTMLPage extends Page {
+  /**
+   * @param {number} idx
+   * @param {number} width
+   * @param {number} height
+   * @param {string} src
+   */
+  constructor(idx, width, height, src) {
+    super(idx, width, height);
+    this.src_ = src;
+    /** @type {HTMLDivElement} */
+    var elem = document.createElement('div');
+    this.elem_ = elem;
+    elem.className = 'manga-page';
+    elem.style.width = this.width + 'px';
+    elem.style.height = this.height + 'px';
+    elem.style.left = '0px';
+    elem.style.top = '0px';
+    elem.style.transformOrigin = '0% 0%';
+    elem.style['-webkit-transformOrigin'] = '0% 0%';
+    elem.innerHTML = src;
+  }
+  /**
+   * @override
+   */
+  get elem() {
+    return this.elem_;
+  }
+  /**
+   * @override
+   */
+  get images() {
+    return [];
   }
 }
 
@@ -1737,33 +1773,51 @@ export class VerticalAxis extends Axis {
  * @param {function(Viewer)} clbk
  */
 export function init(container, trackID, chapterDef, clbk) {
+  var tracker = new Tracker(trackID);
   var startInit = new Date().getTime();
+  var pages = loadChapter(tracker, chapterDef);
+  var viewer = new Viewer(container, tracker, new Chapter(pages));
+  viewer.init(clbk);
+  tracker.pageview();
+  var time = new Date().getTime() - startInit;
+  tracker.timing('Init', 'Setup Viewer', time);
+}
+
+/**
+ * @param {Tracker} tracker
+ * @param {[{images: [{path: string, width: number, height:number, key: (undefined|string)}], src: string, width: number, height:number}]} chapterDef
+ * @returns {Page[]} pages
+ */
+function loadChapter(tracker, chapterDef) {
   /** @type {[Page]} */
   var pages = [];
-  var tracker = new Tracker(trackID);
   for (var i = 0; i < chapterDef.length; i++) {
     var pageDef = chapterDef[i];
-    /** @type {[Image]} */
-    var images = [];
-    for (var j = 0; j < pageDef.images.length; j++) {
-      var imgDef = pageDef.images[j];
-      var key = null;
-      if (imgDef.key) {
-        key = decodeBase64(imgDef.key);
+    /** @type {Page} page  */
+    var page;
+    if(pageDef.images) {
+      /** @type {[Image]} */
+      var images = [];
+      for (var j = 0; j < pageDef.images.length; j++) {
+        var imgDef = pageDef.images[j];
+        var key = null;
+        if (imgDef.key) {
+          key = decodeBase64(imgDef.key);
+        }
+        var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
+        images.push(image);
       }
-      var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
-      images.push(image);
+      page = new ImagePage(i, pageDef.width, pageDef.height, images);
+    } else if(pageDef.src) {
+      page = new HTMLPage(i, pageDef.width, pageDef.height, pageDef.src);
+    } else {
+      comsole.error("Invalid page definition: ", pageDef);
     }
-    var page = new ImagePage(i, pageDef.width, pageDef.height, images);
     pages.push(page);
     if (i > 0) {
       pages[i - 1].next = page;
       page.prev = pages[i - 1];
     }
   }
-  var viewer = new Viewer(container, tracker, new Chapter(pages));
-  viewer.init(clbk);
-  tracker.pageview();
-  var time = new Date().getTime() - startInit;
-  tracker.timing('Init', 'Setup Viewer', time);
+  return pages;
 }

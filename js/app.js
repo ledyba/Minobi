@@ -76,7 +76,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.VerticalAxis = exports.HorizontalAxis = exports.Axis = exports.Viewer = exports.ImageEntity = exports.ImageLoader = exports.ImageCache = exports.Chapter = exports.Face = exports.Page = exports.Image = exports.Tracker = undefined;
+exports.VerticalAxis = exports.HorizontalAxis = exports.Axis = exports.Viewer = exports.ImageEntity = exports.ImageLoader = exports.ImageCache = exports.Chapter = exports.Face = exports.HTMLPage = exports.ImagePage = exports.Page = exports.Image = exports.Tracker = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -245,39 +245,24 @@ var Page = exports.Page = function () {
     _classCallCheck(this, Page);
 
     this.idx = idx;
-    this.scale_ = 1;
-    this.x_ = 0;
-    this.y_ = 0;
-    this.images = images;
     this.width = width;
     this.height = height;
     /** @type {Page} */
     this.prev = null;
     /** @type {Page} */
     this.next = null;
-    /** @type {HTMLDivElement} */
-    this.elem = document.createElement('div');
-    this.elem.className = 'manga-page';
-    this.elem.style.width = this.width + 'px';
-    this.elem.style.height = this.height + 'px';
-    this.elem.style.left = '0px';
-    this.elem.style.top = '0px';
-    this.elem.style.transformOrigin = '0% 0%';
-    this.elem.style['-webkit-transformOrigin'] = '0% 0%';
-    /** @type {!HTMLDivElement[]} */
-    this.imageContainers = [];
-    var left = 0;
-    for (var i = 0; i < this.images.length; i++) {
-      /** @type {HTMLImageElement} */
-      var img = images[i];
-      var elem = img.element;
-      elem.classList.add('manga-image');
-      this.imageContainers.push(elem);
-      this.elem.appendChild(elem);
-      elem.style.left = left + 'px';
-      left += img.width;
-    }
+    /** @private */
+    this.scale_ = 1;
+    /** @private */
+    this.x_ = 0;
+    /** @private */
+    this.y_ = 0;
   }
+  /**
+   * @type {HTMLDivElement}
+   * @abstract
+   */
+
 
   _createClass(Page, [{
     key: 'attach',
@@ -286,14 +271,15 @@ var Page = exports.Page = function () {
      * @param {HTMLDivElement} container
      */
     value: function attach(container) {
-      if (!this.elem) {
+      var e = this.elem;
+      if (!e) {
         console.error("Null elem.");
         return;
-      } else if (container === this.elem.parentElement) {
+      } else if (container === e.parentElement) {
         console.warn("already attached");
         return;
       }
-      container.appendChild(this.elem);
+      container.appendChild(e);
     }
     /**
      * @param {HTMLDivElement} container
@@ -302,31 +288,48 @@ var Page = exports.Page = function () {
   }, {
     key: 'detach',
     value: function detach(container) {
-      if (!this.elem) {
+      var e = this.elem;
+      if (!e) {
         console.error("Null elem.");
         return;
-      } else if (container !== this.elem.parentElement) {
+      } else if (container !== e.parentElement) {
         console.warn("already detached");
         return;
       }
-      container.removeChild(this.elem);
+      container.removeChild(e);
     }
   }, {
     key: 'transform',
     value: function transform(scale, dx, dy) {
+      var e = this.elem;
       this.scale_ = scale;
       this.x_ = dx;
       this.y_ = dy;
       var trans = 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
-      this.elem.style.transform = trans;
-      this.elem.style['-webkit-transform'] = trans;
+      e.style.transform = trans;
+      e.style['-webkit-transform'] = trans;
     }
     /** @return {number} scale */
 
   }, {
+    key: 'elem',
+    get: function get() {
+      throw new Error("Please implement");
+    }
+    /**
+     * @type {[Image]}
+     */
+
+  }, {
+    key: 'images',
+    get: function get() {
+      return null;
+    }
+  }, {
     key: 'attached',
     get: function get() {
-      return !this.elem || !!this.elem.parentElement;
+      var e = this.elem;
+      return !e || !!e.parentElement;
     }
   }, {
     key: 'scale',
@@ -365,6 +368,119 @@ var Page = exports.Page = function () {
 
   return Page;
 }();
+
+var ImagePage = exports.ImagePage = function (_Page) {
+  _inherits(ImagePage, _Page);
+
+  /**
+   * @param {number} idx
+   * @param {number} width
+   * @param {number} height
+   * @param {[Image]} images
+   */
+  function ImagePage(idx, width, height, images) {
+    _classCallCheck(this, ImagePage);
+
+    var _this = _possibleConstructorReturn(this, (ImagePage.__proto__ || Object.getPrototypeOf(ImagePage)).call(this, idx, width, height));
+
+    _this.images_ = images;
+    /** @type {HTMLDivElement} */
+    var elem = document.createElement('div');
+    _this.elem_ = elem;
+    elem.className = 'manga-page';
+    elem.style.width = _this.width + 'px';
+    elem.style.height = _this.height + 'px';
+    elem.style.left = '0px';
+    elem.style.top = '0px';
+    elem.style.transformOrigin = '0% 0%';
+    elem.style['-webkit-transformOrigin'] = '0% 0%';
+    var left = 0;
+    for (var i = 0; i < images.length; i++) {
+      /** @type {HTMLImageElement} */
+      var img = images[i];
+      var ielm = img.element;
+      ielm.classList.add('manga-image');
+      elem.appendChild(ielm);
+      ielm.style.left = left + 'px';
+      left += img.width;
+    }
+    return _this;
+  }
+  /**
+   * @override
+   */
+
+
+  _createClass(ImagePage, [{
+    key: 'elem',
+    get: function get() {
+      return this.elem_;
+    }
+    /**
+     * @override
+     */
+
+  }, {
+    key: 'images',
+    get: function get() {
+      return this.images_;
+    }
+  }]);
+
+  return ImagePage;
+}(Page);
+
+var HTMLPage = exports.HTMLPage = function (_Page2) {
+  _inherits(HTMLPage, _Page2);
+
+  /**
+   * @param {number} idx
+   * @param {number} width
+   * @param {number} height
+   * @param {string} src
+   */
+  function HTMLPage(idx, width, height, src) {
+    _classCallCheck(this, HTMLPage);
+
+    var _this2 = _possibleConstructorReturn(this, (HTMLPage.__proto__ || Object.getPrototypeOf(HTMLPage)).call(this, idx, width, height));
+
+    _this2.src_ = src;
+    /** @type {HTMLDivElement} */
+    var elem = document.createElement('div');
+    _this2.elem_ = elem;
+    elem.className = 'manga-page';
+    elem.style.width = _this2.width + 'px';
+    elem.style.height = _this2.height + 'px';
+    elem.style.left = '0px';
+    elem.style.top = '0px';
+    elem.style.transformOrigin = '0% 0%';
+    elem.style['-webkit-transformOrigin'] = '0% 0%';
+    elem.innerHTML = src;
+    return _this2;
+  }
+  /**
+   * @override
+   */
+
+
+  _createClass(HTMLPage, [{
+    key: 'elem',
+    get: function get() {
+      return this.elem_;
+    }
+    /**
+     * @override
+     */
+
+  }, {
+    key: 'images',
+    get: function get() {
+      return [];
+    }
+  }]);
+
+  return HTMLPage;
+}(Page);
 
 var Face = exports.Face = function () {
   /**
@@ -636,8 +752,13 @@ var ImageCache = exports.ImageCache = function () {
   _createClass(ImageCache, [{
     key: 'enqueue',
     value: function enqueue(page) {
-      for (var i = 0; i < page.images.length; i++) {
-        var img = page.images[i];
+      /** @type {[Image]} */
+      var images = page.images;
+      if (!images || images.length <= 0) {
+        return;
+      }
+      for (var i = 0; i < images.length; i++) {
+        var img = images[i];
         if (img.entity) {
           this.tracker_.event('ImageCache', 'Hit', img.url);
           // already loaded. push to the front of the list.
@@ -1449,20 +1570,20 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
     _classCallCheck(this, HorizontalAxis);
 
     /** @type {Face} */
-    var _this = _possibleConstructorReturn(this, (HorizontalAxis.__proto__ || Object.getPrototypeOf(HorizontalAxis)).call(this, tracker, chapter));
+    var _this3 = _possibleConstructorReturn(this, (HorizontalAxis.__proto__ || Object.getPrototypeOf(HorizontalAxis)).call(this, tracker, chapter));
 
-    _this.current_ = null;
+    _this3.current_ = null;
     /** @type {number} */
-    _this.pos_ = 0;
+    _this3.pos_ = 0;
     /** @type {number} */
-    _this.speed_ = 0;
+    _this3.speed_ = 0;
     /** @type {number} */
-    _this.timer = 0;
+    _this3.timer = 0;
     /** @type {[Face]} */
-    _this.attachQueue_ = [];
+    _this3.attachQueue_ = [];
     /** @type {[Face]} */
-    _this.detachQueue_ = [];
-    return _this;
+    _this3.detachQueue_ = [];
+    return _this3;
   }
   /**
    * @name IMakeCurrentFace
@@ -2115,35 +2236,53 @@ var VerticalAxis = exports.VerticalAxis = function (_Axis2) {
 
 
 function init(container, trackID, chapterDef, clbk) {
+  var tracker = new Tracker(trackID);
   var startInit = new Date().getTime();
+  var pages = loadChapter(tracker, chapterDef);
+  var viewer = new Viewer(container, tracker, new Chapter(pages));
+  viewer.init(clbk);
+  tracker.pageview();
+  var time = new Date().getTime() - startInit;
+  tracker.timing('Init', 'Setup Viewer', time);
+}
+
+/**
+ * @param {Tracker} tracker
+ * @param {[{images: [{path: string, width: number, height:number, key: (undefined|string)}], src: string, width: number, height:number}]} chapterDef
+ * @returns {Page[]} pages
+ */
+function loadChapter(tracker, chapterDef) {
   /** @type {[Page]} */
   var pages = [];
-  var tracker = new Tracker(trackID);
   for (var i = 0; i < chapterDef.length; i++) {
     var pageDef = chapterDef[i];
-    /** @type {[Image]} */
-    var images = [];
-    for (var j = 0; j < pageDef.images.length; j++) {
-      var imgDef = pageDef.images[j];
-      var key = null;
-      if (imgDef.key) {
-        key = (0, _util.decodeBase64)(imgDef.key);
+    /** @type {Page} page  */
+    var page;
+    if (pageDef.images) {
+      /** @type {[Image]} */
+      var images = [];
+      for (var j = 0; j < pageDef.images.length; j++) {
+        var imgDef = pageDef.images[j];
+        var key = null;
+        if (imgDef.key) {
+          key = (0, _util.decodeBase64)(imgDef.key);
+        }
+        var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
+        images.push(image);
       }
-      var image = new Image(imgDef.path, imgDef.width, imgDef.height, key);
-      images.push(image);
+      page = new ImagePage(i, pageDef.width, pageDef.height, images);
+    } else if (pageDef.src) {
+      page = new HTMLPage(i, pageDef.width, pageDef.height, pageDef.src);
+    } else {
+      comsole.error("Invalid page definition: ", pageDef);
     }
-    var page = new Page(i, pageDef.width, pageDef.height, images);
     pages.push(page);
     if (i > 0) {
       pages[i - 1].next = page;
       page.prev = pages[i - 1];
     }
   }
-  var viewer = new Viewer(container, tracker, new Chapter(pages));
-  viewer.init(clbk);
-  tracker.pageview();
-  var time = new Date().getTime() - startInit;
-  tracker.timing('Init', 'Setup Viewer', time);
+  return pages;
 }
 
 /***/ }),
