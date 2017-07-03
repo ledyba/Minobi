@@ -298,23 +298,24 @@ var Page = exports.Page = function () {
       }
       container.removeChild(e);
     }
+    /**
+     * @abstract
+     * @param {number} scale
+     * @param {number} dx
+     * @param {number} dy
+     */
+
   }, {
     key: 'transform',
     value: function transform(scale, dx, dy) {
-      var e = this.elem;
-      this.scale_ = scale;
-      this.x_ = dx;
-      this.y_ = dy;
-      var trans = 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
-      e.style.transform = trans;
-      e.style['-webkit-transform'] = trans;
+      throw new Error("Please implement Page#transform");
     }
     /** @return {number} scale */
 
   }, {
     key: 'elem',
     get: function get() {
-      throw new Error("Please implement");
+      throw new Error("Please implement Page#elem");
     }
     /**
      * @type {[Image]}
@@ -387,7 +388,7 @@ var ImagePage = exports.ImagePage = function (_Page) {
     /** @type {HTMLDivElement} */
     var elem = document.createElement('div');
     _this.elem_ = elem;
-    elem.className = 'manga-page';
+    elem.className = 'manga-page manga-page-image';
     elem.style.width = _this.width + 'px';
     elem.style.height = _this.height + 'px';
     elem.style.left = '0px';
@@ -412,6 +413,24 @@ var ImagePage = exports.ImagePage = function (_Page) {
 
 
   _createClass(ImagePage, [{
+    key: 'transform',
+
+    /**
+     * @override
+     * @param {number} scale
+     * @param {number} dx
+     * @param {number} dy
+     */
+    value: function transform(scale, dx, dy) {
+      var e = this.elem;
+      this.scale_ = scale;
+      this.x_ = dx;
+      this.y_ = dy;
+      var trans = scale === 1.0 ? 'translate(' + dx + 'px, ' + dy + 'px)' : 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
+      e.style.transform = trans;
+      e.style['-webkit-transform'] = trans;
+    }
+  }, {
     key: 'elem',
     get: function get() {
       return this.elem_;
@@ -448,13 +467,11 @@ var HTMLPage = exports.HTMLPage = function (_Page2) {
     /** @type {HTMLDivElement} */
     var elem = document.createElement('div');
     _this2.elem_ = elem;
-    elem.className = 'manga-page';
+    elem.className = 'manga-page manga-page-html';
     elem.style.width = _this2.width + 'px';
     elem.style.height = _this2.height + 'px';
     elem.style.left = '0px';
     elem.style.top = '0px';
-    elem.style.transformOrigin = '0% 0%';
-    elem.style['-webkit-transformOrigin'] = '0% 0%';
     elem.innerHTML = src;
     return _this2;
   }
@@ -464,6 +481,27 @@ var HTMLPage = exports.HTMLPage = function (_Page2) {
 
 
   _createClass(HTMLPage, [{
+    key: 'transform',
+
+    /**
+     * @override
+     * @param {number} scale
+     * @param {number} dx
+     * @param {number} dy
+     */
+    value: function transform(scale, dx, dy) {
+      var e = this.elem;
+      this.scale_ = scale;
+      this.x_ = dx;
+      this.y_ = dy;
+      console.log(dx, dy);
+      e.style.transform = '';
+      e.style.top = dy * scale + 'px';
+      e.style.left = dx * scale + 'px';
+      e.style.width = scale * this.width + 'px';
+      e.style.height = scale * this.height + 'px';
+    }
+  }, {
     key: 'elem',
     get: function get() {
       return this.elem_;
@@ -565,7 +603,7 @@ var Face = exports.Face = function () {
       this.scale_ = scale;
       this.x_ = dx;
       this.y_ = dy;
-      var trans = 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
+      var trans = scale === 1.0 ? 'translate(' + dx + 'px, ' + dy + 'px)' : 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
       this.elem_.style.transform = trans;
       this.elem_.style['-webkit-transform'] = trans;
     }

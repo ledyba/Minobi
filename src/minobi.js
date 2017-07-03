@@ -140,7 +140,7 @@ export class Page {
    * @abstract
    */
   get elem() {
-    throw new Error("Please implement");
+    throw new Error("Please implement Page#elem");
   }
   /**
    * @type {[Image]}
@@ -180,14 +180,14 @@ export class Page {
     }
     container.removeChild(e);
   }
+  /**
+   * @abstract
+   * @param {number} scale
+   * @param {number} dx
+   * @param {number} dy
+   */
   transform(scale, dx, dy) {
-    var e = this.elem;
-    this.scale_ = scale;
-    this.x_ = dx;
-    this.y_ = dy;
-    var trans = 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
-    e.style.transform = trans;
-    e.style['-webkit-transform'] = trans;
+    throw new Error("Please implement Page#transform");
   }
   /** @return {number} scale */
   get scale() {
@@ -224,7 +224,7 @@ export class ImagePage extends Page{
     /** @type {HTMLDivElement} */
     var elem = document.createElement('div');
     this.elem_ = elem;
-    elem.className = 'manga-page';
+    elem.className = 'manga-page manga-page-image';
     elem.style.width = this.width + 'px';
     elem.style.height = this.height + 'px';
     elem.style.left = '0px';
@@ -254,6 +254,23 @@ export class ImagePage extends Page{
   get images() {
     return this.images_;
   }
+  /**
+   * @override
+   * @param {number} scale
+   * @param {number} dx
+   * @param {number} dy
+   */
+  transform(scale, dx, dy) {
+    var e = this.elem;
+    this.scale_ = scale;
+    this.x_ = dx;
+    this.y_ = dy;
+    var trans = scale === 1.0 ?
+      'translate(' + dx + 'px, ' + dy + 'px)' :
+      'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
+    e.style.transform = trans;
+    e.style['-webkit-transform'] = trans;
+  }
 }
 
 export class HTMLPage extends Page {
@@ -269,13 +286,11 @@ export class HTMLPage extends Page {
     /** @type {HTMLDivElement} */
     var elem = document.createElement('div');
     this.elem_ = elem;
-    elem.className = 'manga-page';
+    elem.className = 'manga-page manga-page-html';
     elem.style.width = this.width + 'px';
     elem.style.height = this.height + 'px';
     elem.style.left = '0px';
     elem.style.top = '0px';
-    elem.style.transformOrigin = '0% 0%';
-    elem.style['-webkit-transformOrigin'] = '0% 0%';
     elem.innerHTML = src;
   }
   /**
@@ -289,6 +304,24 @@ export class HTMLPage extends Page {
    */
   get images() {
     return [];
+  }
+  /**
+   * @override
+   * @param {number} scale
+   * @param {number} dx
+   * @param {number} dy
+   */
+  transform(scale, dx, dy) {
+    var e = this.elem;
+    this.scale_ = scale;
+    this.x_ = dx;
+    this.y_ = dy;
+    console.log(dx,dy);
+    e.style.transform = '';
+    e.style.top = (dy * scale) + 'px';
+    e.style.left = (dx * scale) + 'px';
+    e.style.width = (scale * this.width) + 'px';
+    e.style.height = (scale * this.height) + 'px';
   }
 }
 
@@ -388,7 +421,9 @@ export class Face {
     this.scale_ = scale;
     this.x_ = dx;
     this.y_ = dy;
-    var trans = 'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
+    var trans = scale === 1.0 ?
+      'translate(' + dx + 'px, ' + dy + 'px)' :
+      'scale(' + scale + ') translate(' + dx + 'px, ' + dy + 'px)';
     this.elem_.style.transform = trans;
     this.elem_.style['-webkit-transform'] = trans;
   }
