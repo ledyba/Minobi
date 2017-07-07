@@ -261,6 +261,7 @@ export class SeekBar {
    * @param {string} cause
    */
   seek(v, delay, reload, cause) {
+    cause = cause || '?';
     this.seek_(this.toSeekableValue_(v), delay, reload, cause);
   }
   /**
