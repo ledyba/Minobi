@@ -66,9 +66,11 @@ Minobi.init(document.getElementById("minobi"), chapter, function(viewer) {
 
       /**
        * @param {[number]} pages
+       * @param {string} cause
        */
-      var handler = function(pages){
+      var handler = function(pages, cause) {
         // ...
+        // cause := 'swipe' | 'software';
       };
       viewer.addEventListener('pageenter', handler);
       viewer.removeEventListener('pageenter', handler);
@@ -84,11 +86,13 @@ This event will be fired when a seekbar is activated or deactivated.
 ```js
 var seekbar = new Minobi.Seekbar(/* ... */);
 
-seekbar.addEventListener('activated', function(){
-  console.log("seekbar activated");
+seekbar.addEventListener('activated', function(cause) {
+  console.log("seekbar activated by", cause);
+  //cause := 'mouse' | 'touch' | '?'
 });
-seekbar.addEventListener('deactivated', function(){
+seekbar.addEventListener('deactivated', function(cause) {
   console.log("seekbar deactivated");
+  //cause := 'mouse' | 'touch' | '?'
 });
 ```
 

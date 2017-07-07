@@ -1034,15 +1034,6 @@ export class Viewer {
       list[i].apply(null, args);
     }
   }
-  /**
-   * @param {[number]} pages
-   * @protected
-   */
-  onPageEnter_(pages) {
-    if (pages.length > 0) {
-      this.dispatchEvent_('pageenter', pages);
-    }
-  }
   get seekbar() {
     return this.seekbar_;
   }
@@ -1055,8 +1046,17 @@ export class Viewer {
     return this.cache_;
   }
   makeHorizontalAxis() {
+    /**
+     * @param {[number]} pages
+     * @param {string} cause
+     */
+    var onPageEnter = function(pages, cause) {
+      if (pages.length > 0) {
+        this.dispatchEvent_('pageenter', pages, cause);
+      }
+    };
     var axis = new HorizontalAxis(this.tracker, this.chapter);
-    axis.addEventListener('pageenter', this.onPageEnter_.bind(this));
+    axis.addEventListener('pageenter', onPageEnter.bind(this));
     return axis;
   }
   makeVertivalAxis() {
@@ -1346,7 +1346,7 @@ export class HorizontalAxis extends Axis {
       window.clearInterval(this.timer);
       this.timer = 0;
     }
-    this.dispatchPageEnterEvent();
+    this.dispatchPageEnterEvent('software');
     this.attachQueue_.splice(0, this.attachQueue_.length);
     this.detachQueue_.splice(0, this.detachQueue_.length);
   }
@@ -1422,8 +1422,14 @@ export class HorizontalAxis extends Axis {
   calcScale_(container, page) {
     return Math.min(container.clientWidth_ / page.width, container.clientHeight_ / page.height);
   }
-  dispatchPageEnterEvent() {
-    this.dispatchEvent_('pageenter', this.currentPageNumbers);
+  /**
+   * @param {string} cause
+   */
+  dispatchPageEnterEvent(cause) {
+    if(!cause){
+      throw  new Error("Please set the cause of pageenter event.");
+    }
+    this.dispatchEvent_('pageenter', this.currentPageNumbers, cause);
   }
   /**
    * @returns {[number]}
@@ -1495,7 +1501,7 @@ export class HorizontalAxis extends Axis {
           this.addAttachQueue(this.current_.next);
           this.current_.next.zIndex = 2;
         }
-        this.dispatchPageEnterEvent();
+        this.dispatchPageEnterEvent('swipe');
       } else {
         this.pos_ = 1.0;
       }
@@ -1519,7 +1525,7 @@ export class HorizontalAxis extends Axis {
           this.addAttachQueue(this.current_.prev);
           this.current_.prev.zIndex = 0;
         }
-        this.dispatchPageEnterEvent();
+        this.dispatchPageEnterEvent('swipe');
       } else {
         this.pos_ = 0.0;
       }

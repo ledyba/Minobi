@@ -1327,23 +1327,20 @@ var Viewer = exports.Viewer = function () {
         list[i].apply(null, args);
       }
     }
-    /**
-     * @param {[number]} pages
-     * @protected
-     */
-
-  }, {
-    key: 'onPageEnter_',
-    value: function onPageEnter_(pages) {
-      if (pages.length > 0) {
-        this.dispatchEvent_('pageenter', pages);
-      }
-    }
   }, {
     key: 'makeHorizontalAxis',
     value: function makeHorizontalAxis() {
+      /**
+       * @param {[number]} pages
+       * @param {string} cause
+       */
+      var onPageEnter = function onPageEnter(pages, cause) {
+        if (pages.length > 0) {
+          this.dispatchEvent_('pageenter', pages, cause);
+        }
+      };
       var axis = new HorizontalAxis(this.tracker, this.chapter);
-      axis.addEventListener('pageenter', this.onPageEnter_.bind(this));
+      axis.addEventListener('pageenter', onPageEnter.bind(this));
       return axis;
     }
   }, {
@@ -1728,7 +1725,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
         window.clearInterval(this.timer);
         this.timer = 0;
       }
-      this.dispatchPageEnterEvent();
+      this.dispatchPageEnterEvent('software');
       this.attachQueue_.splice(0, this.attachQueue_.length);
       this.detachQueue_.splice(0, this.detachQueue_.length);
     }
@@ -1819,10 +1816,17 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
     value: function calcScale_(container, page) {
       return Math.min(container.clientWidth_ / page.width, container.clientHeight_ / page.height);
     }
+    /**
+     * @param {string} cause
+     */
+
   }, {
     key: 'dispatchPageEnterEvent',
-    value: function dispatchPageEnterEvent() {
-      this.dispatchEvent_('pageenter', this.currentPageNumbers);
+    value: function dispatchPageEnterEvent(cause) {
+      if (!cause) {
+        throw new Error("Please set the cause of pageenter event.");
+      }
+      this.dispatchEvent_('pageenter', this.currentPageNumbers, cause);
     }
     /**
      * @returns {[number]}
@@ -1894,7 +1898,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
             this.addAttachQueue(this.current_.next);
             this.current_.next.zIndex = 2;
           }
-          this.dispatchPageEnterEvent();
+          this.dispatchPageEnterEvent('swipe');
         } else {
           this.pos_ = 1.0;
         }
@@ -1918,7 +1922,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
             this.addAttachQueue(this.current_.prev);
             this.current_.prev.zIndex = 0;
           }
-          this.dispatchPageEnterEvent();
+          this.dispatchPageEnterEvent('swipe');
         } else {
           this.pos_ = 0.0;
         }
@@ -2406,7 +2410,7 @@ var SeekBar = exports.SeekBar = function () {
       viewer.seekbar = this;
       viewer.addEventListener("ready", this.onReady_.bind(this));
       viewer.addEventListener("resize", this.onResize_.bind(this));
-      viewer.addEventListener("pageenter", function (pages) {
+      viewer.addEventListener("pageenter", function (pages, cause) {
         this.move(pages[0] + 1);
       }.bind(this));
     }
@@ -2425,11 +2429,11 @@ var SeekBar = exports.SeekBar = function () {
       this.initPage_ = v;
 
       /* hide seekbar after [this.activePeriod] */
-      var hideBar = this.deactivate.bind(this);
-      var showBar = this.activate.bind(this, 0);
-      this.deactivateAfter(this.activePeriod);
+      var hideBar = this.deactivate.bind(this, 'mouse');
+      var showBar = this.activate.bind(this, 0, 'mouse');
+      this.deactivateAfter(this.activePeriod, 'mouse');
       this.container_.addEventListener('mouseenter', showBar);
-      this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, this.activePeriod));
+      this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, this.activePeriod, 'mouse'));
 
       /* slide event(mouse) */
       var clicked = false;
@@ -2473,7 +2477,7 @@ var SeekBar = exports.SeekBar = function () {
       var touchStart = function touchStart(event) {
         if (!clicked && !!event.targetTouches[0]) {
           event.preventDefault();
-          self.activate();
+          self.activate('touch');
           clicked = true;
           window.addEventListener('touchmove', touchMove, { passive: true });
           window.addEventListener('touchend', touchEnd, false);
@@ -2492,7 +2496,7 @@ var SeekBar = exports.SeekBar = function () {
           var v = (self.orientation_ > 0 ? calcPos(touch) : 1 - calcPos(touch)) * (self.max_ - self.min_) + self.min_;
           self.seek(v, 100);
           clicked = false;
-          self.deactivateAfter(this.activePeriod);
+          self.deactivateAfter(this.activePeriod, 'touch');
           self.tracker_.event('SeekBar', 'SeekByTouch', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
         }
         touch = null;
@@ -2680,41 +2684,53 @@ var SeekBar = exports.SeekBar = function () {
       this.pagecounter_.innerText = v + ' / ' + this.max_;
       return true;
     }
-    /** @param {number} deactivateAfter */
+    /**
+     * @param {number} deactivateAfter
+     * @param {string} cause
+     */
 
   }, {
     key: 'activate',
-    value: function activate(deactivateAfter) {
+    value: function activate(deactivateAfter, cause) {
+      cause = cause || '?';
       if (this.hideTimer_) {
         window.clearTimeout(this.hideTimer_);
         this.hideTimer_ = 0;
       }
       this.container_.classList.remove('hidden');
       if (deactivateAfter) {
-        this.deactivateAfter(deactivateAfter);
+        this.deactivateAfter(deactivateAfter, cause);
       }
-      this.dispatchEvent_('activated', this);
+      this.dispatchEvent_('activated', cause);
     }
+    /**
+     * @param {string} cause
+     */
+
   }, {
     key: 'deactivate',
-    value: function deactivate() {
+    value: function deactivate(cause) {
+      cause = cause || '?';
       if (this.hideTimer_) {
         window.clearTimeout(this.hideTimer_);
         this.hideTimer_ = 0;
       }
       this.container_.classList.add('hidden');
-      this.dispatchEvent_('deactivated', this);
+      this.dispatchEvent_('deactivated', cause);
     }
-    /** @param {number} delayMs */
+    /**
+     * @param {number} delayMs
+     * @param {string} cause
+     */
 
   }, {
     key: 'deactivateAfter',
-    value: function deactivateAfter(delayMs) {
+    value: function deactivateAfter(delayMs, cause) {
       if (this.hideTimer_) {
         window.clearTimeout(this.hideTimer_);
         this.hideTimer_ = 0;
       }
-      this.hideTimer_ = window.setTimeout(this.deactivate.bind(this), delayMs);
+      this.hideTimer_ = window.setTimeout(this.deactivate.bind(this, cause), delayMs);
     }
   }, {
     key: 'onReady_',

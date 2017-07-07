@@ -63,7 +63,7 @@ export class SeekBar {
       viewer.seekbar = this;
       viewer.addEventListener("ready", this.onReady_.bind(this));
       viewer.addEventListener("resize", this.onResize_.bind(this));
-      viewer.addEventListener("pageenter", function (pages) {
+      viewer.addEventListener("pageenter", function (pages, cause) {
         this.move(pages[0] + 1);
       }.bind(this));
     }
@@ -78,11 +78,11 @@ export class SeekBar {
     this.initPage_ = v;
 
     /* hide seekbar after [this.activePeriod] */
-    var hideBar = this.deactivate.bind(this);
-    var showBar = this.activate.bind(this, 0);
-    this.deactivateAfter(this.activePeriod);
+    var hideBar = this.deactivate.bind(this, 'mouse');
+    var showBar = this.activate.bind(this, 0, 'mouse');
+    this.deactivateAfter(this.activePeriod, 'mouse');
     this.container_.addEventListener('mouseenter', showBar);
-    this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, this.activePeriod));
+    this.container_.addEventListener('mouseleave', self.deactivateAfter.bind(this, this.activePeriod, 'mouse'));
 
     /* slide event(mouse) */
     var clicked = false;
@@ -127,7 +127,7 @@ export class SeekBar {
     var touchStart = function (event) {
       if (!clicked && !!event.targetTouches[0]) {
         event.preventDefault();
-        self.activate();
+        self.activate('touch');
         clicked = true;
         window.addEventListener('touchmove', touchMove, { passive: true });
         window.addEventListener('touchend', touchEnd, false);
@@ -146,7 +146,7 @@ export class SeekBar {
         var v = (self.orientation_ > 0 ? calcPos(touch) : (1 - calcPos(touch))) * (self.max_ - self.min_) + self.min_;
         self.seek(v, 100);
         clicked = false;
-        self.deactivateAfter(this.activePeriod);
+        self.deactivateAfter(this.activePeriod, 'touch');
         self.tracker_.event('SeekBar', 'SeekByTouch', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
       }
       touch = null;
@@ -316,33 +316,44 @@ export class SeekBar {
     this.pagecounter_.innerText = v + ' / ' + this.max_;
     return true;
   }
-  /** @param {number} deactivateAfter */
-  activate(deactivateAfter) {
+  /**
+   * @param {number} deactivateAfter
+   * @param {string} cause
+   */
+  activate(deactivateAfter, cause) {
+    cause = cause || '?';
     if (this.hideTimer_) {
       window.clearTimeout(this.hideTimer_);
       this.hideTimer_ = 0;
     }
     this.container_.classList.remove('hidden');
     if (deactivateAfter) {
-      this.deactivateAfter(deactivateAfter);
+      this.deactivateAfter(deactivateAfter, cause);
     }
-    this.dispatchEvent_('activated', this);
+    this.dispatchEvent_('activated', cause);
   }
-  deactivate() {
+  /**
+   * @param {string} cause
+   */
+  deactivate(cause) {
+    cause = cause || '?';
     if (this.hideTimer_) {
       window.clearTimeout(this.hideTimer_);
       this.hideTimer_ = 0;
     }
     this.container_.classList.add('hidden');
-    this.dispatchEvent_('deactivated', this);
+    this.dispatchEvent_('deactivated', cause);
   }
-  /** @param {number} delayMs */
-  deactivateAfter(delayMs) {
+  /**
+   * @param {number} delayMs
+   * @param {string} cause
+   */
+  deactivateAfter(delayMs, cause) {
     if (this.hideTimer_) {
       window.clearTimeout(this.hideTimer_);
       this.hideTimer_ = 0;
     }
-    this.hideTimer_ = window.setTimeout(this.deactivate.bind(this), delayMs);
+    this.hideTimer_ = window.setTimeout(this.deactivate.bind(this, cause), delayMs);
   }
   onReady_() {
     this.seek_(this.initPage_, 0, true);

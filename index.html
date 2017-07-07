@@ -219,6 +219,7 @@
         };
 
         // Make seekbar.
+        /** @type {Minobi.SeekBar} seekbar */
         var seekbar = new Minobi.SeekBar(
           viewer,
           document.getElementById("minobi-seekbar"),
@@ -228,10 +229,19 @@
           1 /* min */,
           chapter.length /* max */,
           1 /* step */,
-          -1 /* orientation(R->L) */);
+          -1 /* orientation(L<-R) */);
+        viewer.addEventListener('pageenter', function(pages, cause){
+          console.log('pageenter', cause, pages)
+        });
 
         // Initialize
         seekbar.init(1 /* Initial Page(1-origin) */);
+        seekbar.addEventListener('activated', function(cause){
+          console.log('activated', cause);
+        });
+        seekbar.addEventListener('deactivated', function(cause){
+          console.log('deactivated', cause);
+        });
       });
   </script>
 </body>
