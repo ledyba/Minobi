@@ -70,7 +70,7 @@ Minobi.init(document.getElementById("minobi"), chapter, function(viewer) {
        */
       var handler = function(pages, cause) {
         // ...
-        // cause := 'swipe' | 'software';
+        // cause := 'swipe' | 'touch' | 'mouse' | 'keyboard' | 'init' | 'resize' | 'reload' | '?';
       };
       viewer.addEventListener('pageenter', handler);
       viewer.removeEventListener('pageenter', handler);

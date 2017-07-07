@@ -1083,7 +1083,7 @@ var Viewer = exports.Viewer = function () {
           var vx = dx / self.emInPx_ / duration;
           var vy = dy / self.emInPx_ / duration;
           var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
-          self.axis.onMoveEnd(self, 'Mouse', isTap, self.transitionAreaRatioForMouse, (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_, (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_, duration, vx, vy);
+          self.axis.onMoveEnd(self, 'mouse', isTap, self.transitionAreaRatioForMouse, (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_, (event.clientY - self.container_.boundingTop_) / self.container_.clientHeight_, duration, vx, vy);
           tracker.event('Viewer', 'MouseUp');
         }
       };
@@ -1160,7 +1160,7 @@ var Viewer = exports.Viewer = function () {
           var duration = (event.timeStamp - touchStartAt) / 1000;
           var vx = dx / self.emInPx_ / duration;
           var vy = dy / self.emInPx_ / duration;
-          self.axis.onMoveEnd(self, 'Touch', isTap, self.transitionAreaRatioForTouch, (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_, (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_, duration, vx, vy);
+          self.axis.onMoveEnd(self, 'touch', isTap, self.transitionAreaRatioForTouch, (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_, (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_, duration, vx, vy);
           tracker.event('Viewer', 'TouchEnd');
           touchEndAt = event.timeStamp;
         }
@@ -1258,13 +1258,14 @@ var Viewer = exports.Viewer = function () {
     }
     /**
      * @param {Page} page
+     * @param {string} cause
      * @private
      */
 
   }, {
     key: 'seek_',
-    value: function seek_(page) {
-      this.axis.seek(this.cache_, this.container_, page);
+    value: function seek_(page, cause) {
+      this.axis.seek(this.cache_, this.container_, page, cause);
     }
     /** @param {SeekBar} seekbar*/
 
@@ -1354,8 +1355,8 @@ var Viewer = exports.Viewer = function () {
       var self = this;
       this.seekbar_ = seekbar;
       /** @param {number} value */
-      seekbar.addEventListener('changed', function (value) {
-        self.seek_(self.chapter.pages[value - 1]);
+      seekbar.addEventListener('changed', function (value, cause) {
+        self.seek_(self.chapter.pages[value - 1], cause);
         self.render();
       });
     },
@@ -1406,13 +1407,14 @@ var Axis = exports.Axis = function () {
    * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @param {Page} page
+   * @param {string} cause
    * @abstract
    */
 
 
   _createClass(Axis, [{
     key: 'seek',
-    value: function seek(cache, container, page) {
+    value: function seek(cache, container, page, cause) {
       throw new Error("Please implement Axis.seek");
     }
     /**
@@ -1630,13 +1632,14 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
    * @param {HTMLDivElement} container
    * @param {Page} page
    * @param {IMakeCurrentFace} makeCurrentFace
+   * @param {string} cause
    * @override
    */
 
 
   _createClass(HorizontalAxis, [{
     key: 'seekInternal_',
-    value: function seekInternal_(cache, container, page, makeCurrentFace) {
+    value: function seekInternal_(cache, container, page, makeCurrentFace, cause) {
       /** @type {[Face]} */
       var current = [];
       /** @type {[Face]} */
@@ -1725,7 +1728,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
         window.clearInterval(this.timer);
         this.timer = 0;
       }
-      this.dispatchPageEnterEvent('software');
+      this.dispatchPageEnterEvent(cause);
       this.attachQueue_.splice(0, this.attachQueue_.length);
       this.detachQueue_.splice(0, this.detachQueue_.length);
     }
@@ -1733,25 +1736,27 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
      * @param {ImageCache} cache
      * @param {HTMLDivElement} container
      * @param {Page} page
+     * @param {string} cause
      * @override
      */
 
   }, {
     key: 'seek',
-    value: function seek(cache, container, page) {
-      this.seekInternal_(cache, container, page, this.makeFace_.bind(this, container));
+    value: function seek(cache, container, page, cause) {
+      this.seekInternal_(cache, container, page, this.makeFace_.bind(this, container), cause);
     }
     /**
      * @param {ImageCache} cache
      * @param {HTMLDivElement} container
      * @param {Page} page
+     * @param {string} cause
      * @override
      */
 
   }, {
     key: 'seekPrev',
-    value: function seekPrev(cache, container, page) {
-      this.seekInternal_(cache, container, page, this.makePrevFace_.bind(this, container));
+    value: function seekPrev(cache, container, page, cause) {
+      this.seekInternal_(cache, container, page, this.makePrevFace_.bind(this, container), cause);
     }
 
     /**
@@ -1989,7 +1994,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       var container = viewer.container;
       this.tracker_.event('Viewer', 'SeekByKeyboard', 'Forward', this.current_.pages[0].idx);
       if (this.current_.nextPage) {
-        this.seek(cache, container, this.current_.nextPage);
+        this.seek(cache, container, this.current_.nextPage, 'keyboard');
         return true;
       } else {
         return false;
@@ -2008,7 +2013,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       var container = viewer.container;
       this.tracker_.event('Viewer', 'SeekByKeyboard', 'Backward', this.current_.pages[0].idx);
       if (this.current_.prev) {
-        this.seekPrev(cache, container, this.current_.prevPage);
+        this.seekPrev(cache, container, this.current_.prevPage, 'keyboard');
         return true;
       } else {
         return false;
@@ -2066,18 +2071,18 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       var tracker = viewer.tracker;
       if (isTap) {
         if (lastRelX < transitionArea && this.current_.nextPage) {
-          this.seek(cache, container, this.current_.nextPage);
+          this.seek(cache, container, this.current_.nextPage, device);
           viewer.render();
           tracker.event('Viewer', 'SeekBy' + device, 'Forward', this.current_.pages[0].idx);
           return;
         } else if (lastRelX > 1 - transitionArea && this.current_.prevPage) {
-          this.seekPrev(cache, container, this.current_.prevPage);
+          this.seekPrev(cache, container, this.current_.prevPage, device);
           viewer.render();
           tracker.event('Viewer', 'SeekBy' + device, 'Backward', this.current_.pages[0].idx);
           return;
         } else {
           if (viewer.seekbar) {
-            viewer.seekbar.activate(viewer.seekbar.activePeriod);
+            viewer.seekbar.activate(viewer.seekbar.activePeriod, device);
             tracker.event('Viewer', 'ActivateSeekbar', device, lastRelX);
           }
           // do not return, since the page might be moved by fingers/mouse pointers.
@@ -2214,13 +2219,14 @@ var VerticalAxis = exports.VerticalAxis = function (_Axis2) {
    * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @param {Page} page
+   * @param {string} cause
    * @override
    */
 
 
   _createClass(VerticalAxis, [{
     key: 'seek',
-    value: function seek(cache, container, page) {}
+    value: function seek(cache, container, page, cause) {}
     /**
      * @param {ImageCache} cache
      * @param {HTMLDivElement} container
@@ -2238,14 +2244,7 @@ var VerticalAxis = exports.VerticalAxis = function (_Axis2) {
 
   }, {
     key: 'onDown',
-    value: function onDown(viewer) {
-      if (this.current_.next) {
-        this.seek(this.current_.next);
-        return true;
-      } else {
-        return false;
-      }
-    }
+    value: function onDown(viewer) {}
     /**
      * @param {Viewer} viewer
      * @return {boolean} reload
@@ -2253,14 +2252,7 @@ var VerticalAxis = exports.VerticalAxis = function (_Axis2) {
 
   }, {
     key: 'onUp',
-    value: function onUp(viewer) {
-      if (this.current_.prev) {
-        this.seek(this.current_.prev);
-        return true;
-      } else {
-        return false;
-      }
-    }
+    value: function onUp(viewer) {}
   }]);
 
   return VerticalAxis;
@@ -2458,7 +2450,7 @@ var SeekBar = exports.SeekBar = function () {
         if (clicked) {
           event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : 1 - calcPos(event)) * (self.max_ - self.min_) + self.min_;
-          self.seek(v, 100);
+          self.seek(v, 100, false, 'mouse');
           clicked = false;
           self.tracker_.event('SeekBar', 'SeekByMouse', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
         }
@@ -2467,7 +2459,7 @@ var SeekBar = exports.SeekBar = function () {
         if (clicked) {
           event.preventDefault();
           var v = (self.orientation_ > 0 ? calcPos(event) : 1 - calcPos(event)) * (self.max_ - self.min_) + self.min_;
-          self.seek(v, 100);
+          self.seek(v, 100, false, 'mouse');
         }
       };
       this.button_.addEventListener('mousedown', mouseDown);
@@ -2494,7 +2486,7 @@ var SeekBar = exports.SeekBar = function () {
         window.removeEventListener('touchcancel', touchEnd);
         if (clicked) {
           var v = (self.orientation_ > 0 ? calcPos(touch) : 1 - calcPos(touch)) * (self.max_ - self.min_) + self.min_;
-          self.seek(v, 100);
+          self.seek(v, 100, false, 'touch');
           clicked = false;
           self.deactivateAfter(this.activePeriod, 'touch');
           self.tracker_.event('SeekBar', 'SeekByTouch', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
@@ -2519,7 +2511,7 @@ var SeekBar = exports.SeekBar = function () {
         touch = ntouch;
 
         var v = (self.orientation_ > 0 ? calcPos(touch) : 1 - calcPos(touch)) * (self.max_ - self.min_) + self.min_;
-        self.seek(v, 100);
+        self.seek(v, 100, 'touch');
       };
       self.button_.addEventListener('touchstart', touchStart, false);
     }
@@ -2611,23 +2603,25 @@ var SeekBar = exports.SeekBar = function () {
      * @param {number} v
      * @param {number} delay
      * @param {boolean} reload
+     * @param {string} cause
      */
 
   }, {
     key: 'seek',
-    value: function seek(v, delay, reload) {
-      this.seek_(this.toSeekableValue_(v), delay, reload);
+    value: function seek(v, delay, reload, cause) {
+      this.seek_(this.toSeekableValue_(v), delay, reload, cause);
     }
     /**
      * @param {number} v
      * @param {number} delay
      * @param {boolean} reload
+     * @param {string} cause
      * @private
      */
 
   }, {
     key: 'seek_',
-    value: function seek_(v, delay, reload) {
+    value: function seek_(v, delay, reload, cause) {
       if (delay === undefined || delay === null) delay = -1;
       if (!this.updateValue(v) && !reload) {
         return;
@@ -2639,14 +2633,14 @@ var SeekBar = exports.SeekBar = function () {
           window.clearTimeout(this.changedTimer_);
         }
         this.changedTimer_ = window.setTimeout(function () {
-          self.dispatchEvent_('changed', v);
+          self.dispatchEvent_('changed', v, cause);
           self.changedTimer_ = 0;
         }, delay);
       } else if (delay >= 0) {
         if (this.changedTimer_) {
           window.clearTimeout(this.changedTimer_);
         }
-        self.dispatchEvent_('changed', v);
+        self.dispatchEvent_('changed', v, cause);
       }
     }
     /** @param {number} v */
@@ -2735,19 +2729,19 @@ var SeekBar = exports.SeekBar = function () {
   }, {
     key: 'onReady_',
     value: function onReady_() {
-      this.seek_(this.initPage_, 0, true);
+      this.seek_(this.initPage_, 0, true, 'init');
     }
   }, {
     key: 'onResize_',
     value: function onResize_() {
-      this.seek_(this.value_, 30, true);
+      this.seek_(this.value_, 30, true, 'resize');
     }
   }, {
     key: 'seekablePages',
     set: function set(v) {
       this.seekablePages_ = v;
       if (v && v.length > 0) {
-        this.seek(this.value_, 30);
+        this.seek(this.value_, 30, false, 'reload');
       }
     }
     /** @type {[number]} seekablePages */

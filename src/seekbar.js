@@ -108,7 +108,7 @@ export class SeekBar {
       if (clicked) {
         event.preventDefault();
         var v = (self.orientation_ > 0 ? calcPos(event) : (1 - calcPos(event))) * (self.max_ - self.min_) + self.min_;
-        self.seek(v, 100);
+        self.seek(v, 100, false, 'mouse');
         clicked = false;
         self.tracker_.event('SeekBar', 'SeekByMouse', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
       }
@@ -117,7 +117,7 @@ export class SeekBar {
       if (clicked) {
         event.preventDefault();
         var v = (self.orientation_ > 0 ? calcPos(event) : (1 - calcPos(event))) * (self.max_ - self.min_) + self.min_;
-        self.seek(v, 100);
+        self.seek(v, 100, false, 'mouse');
       }
     };
     this.button_.addEventListener('mousedown', mouseDown);
@@ -144,7 +144,7 @@ export class SeekBar {
       window.removeEventListener('touchcancel', touchEnd);
       if (clicked) {
         var v = (self.orientation_ > 0 ? calcPos(touch) : (1 - calcPos(touch))) * (self.max_ - self.min_) + self.min_;
-        self.seek(v, 100);
+        self.seek(v, 100, false, 'touch');
         clicked = false;
         self.deactivateAfter(this.activePeriod, 'touch');
         self.tracker_.event('SeekBar', 'SeekByTouch', self.value_ === orig ? 'Same' : self.value_ > orig ? 'Forward' : 'Backward', this.value_);
@@ -169,7 +169,7 @@ export class SeekBar {
       touch = ntouch;
 
       var v = (self.orientation_ > 0 ? calcPos(touch) : (1 - calcPos(touch))) * (self.max_ - self.min_) + self.min_;
-      self.seek(v, 100);
+      self.seek(v, 100, 'touch');
     };
     self.button_.addEventListener('touchstart', touchStart, false);
   }
@@ -227,7 +227,7 @@ export class SeekBar {
   set seekablePages(v) {
     this.seekablePages_ = v;
     if (v && v.length > 0) {
-      this.seek(this.value_, 30);
+      this.seek(this.value_, 30, false, 'reload');
     }
   }
   /** @type {[number]} seekablePages */
@@ -258,17 +258,19 @@ export class SeekBar {
    * @param {number} v
    * @param {number} delay
    * @param {boolean} reload
+   * @param {string} cause
    */
-  seek(v, delay, reload) {
-    this.seek_(this.toSeekableValue_(v), delay, reload);
+  seek(v, delay, reload, cause) {
+    this.seek_(this.toSeekableValue_(v), delay, reload, cause);
   }
   /**
    * @param {number} v
    * @param {number} delay
    * @param {boolean} reload
+   * @param {string} cause
    * @private
    */
-  seek_(v, delay, reload) {
+  seek_(v, delay, reload, cause) {
     if (delay === undefined || delay === null) delay = -1;
     if (!this.updateValue(v) && !reload) {
       return;
@@ -280,14 +282,14 @@ export class SeekBar {
         window.clearTimeout(this.changedTimer_);
       }
       this.changedTimer_ = window.setTimeout(function () {
-        self.dispatchEvent_('changed', v);
+        self.dispatchEvent_('changed', v, cause);
         self.changedTimer_ = 0;
       }, delay);
     } else if (delay >= 0) {
       if (this.changedTimer_) {
         window.clearTimeout(this.changedTimer_);
       }
-      self.dispatchEvent_('changed', v);
+      self.dispatchEvent_('changed', v, cause);
     }
   }
   /** @param {number} v */
@@ -356,9 +358,9 @@ export class SeekBar {
     this.hideTimer_ = window.setTimeout(this.deactivate.bind(this, cause), delayMs);
   }
   onReady_() {
-    this.seek_(this.initPage_, 0, true);
+    this.seek_(this.initPage_, 0, true, 'init');
   }
   onResize_() {
-    this.seek_(this.value_, 30, true);
+    this.seek_(this.value_, 30, true, 'resize');
   }
 }

@@ -787,7 +787,7 @@ export class Viewer {
         var vy = (dy / self.emInPx_) / duration;
         var isTap = Math.max(Math.abs(dx), Math.abs(dy)) < self.maxTapDistance_;
         self.axis.onMoveEnd(self,
-          'Mouse',
+          'mouse',
           isTap,
           self.transitionAreaRatioForMouse,
           (event.clientX - self.container_.boundingLeft_) / self.container_.clientWidth_,
@@ -871,7 +871,7 @@ export class Viewer {
         var duration = (event.timeStamp - touchStartAt) / 1000;
         var vx = (dx / self.emInPx_) / duration;
         var vy = (dy / self.emInPx_) / duration;
-        self.axis.onMoveEnd(self, 'Touch', isTap,
+        self.axis.onMoveEnd(self, 'touch', isTap,
           self.transitionAreaRatioForTouch,
           (lastTouchX - self.container_.boundingLeft_) / self.container_.clientWidth_,
           (lastTouchY - self.container_.boundingTop_) / self.container_.clientHeight_,
@@ -969,18 +969,19 @@ export class Viewer {
   }
   /**
    * @param {Page} page
+   * @param {string} cause
    * @private
    */
-  seek_(page) {
-    this.axis.seek(this.cache_, this.container_, page);
+  seek_(page, cause) {
+    this.axis.seek(this.cache_, this.container_, page, cause);
   }
   /** @param {SeekBar} seekbar*/
   set seekbar(seekbar) {
     var self = this;
     this.seekbar_ = seekbar;
     /** @param {number} value */
-    seekbar.addEventListener('changed', function (value) {
-      self.seek_(self.chapter.pages[value - 1]);
+    seekbar.addEventListener('changed', function (value, cause) {
+      self.seek_(self.chapter.pages[value - 1], cause);
       self.render();
     });
   }
@@ -1085,9 +1086,10 @@ export class Axis {
    * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @param {Page} page
+   * @param {string} cause
    * @abstract
    */
-  seek(cache, container, page) {
+  seek(cache, container, page, cause) {
     throw new Error("Please implement Axis.seek");
   }
   /**
@@ -1255,9 +1257,10 @@ export class HorizontalAxis extends Axis {
    * @param {HTMLDivElement} container
    * @param {Page} page
    * @param {IMakeCurrentFace} makeCurrentFace
+   * @param {string} cause
    * @override
    */
-  seekInternal_(cache, container, page, makeCurrentFace) {
+  seekInternal_(cache, container, page, makeCurrentFace, cause) {
     /** @type {[Face]} */
     var current = [];
     /** @type {[Face]} */
@@ -1346,7 +1349,7 @@ export class HorizontalAxis extends Axis {
       window.clearInterval(this.timer);
       this.timer = 0;
     }
-    this.dispatchPageEnterEvent('software');
+    this.dispatchPageEnterEvent(cause);
     this.attachQueue_.splice(0, this.attachQueue_.length);
     this.detachQueue_.splice(0, this.detachQueue_.length);
   }
@@ -1354,19 +1357,21 @@ export class HorizontalAxis extends Axis {
    * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @param {Page} page
+   * @param {string} cause
    * @override
    */
-  seek(cache, container, page) {
-    this.seekInternal_(cache, container, page, this.makeFace_.bind(this, container));
+  seek(cache, container, page, cause) {
+    this.seekInternal_(cache, container, page, this.makeFace_.bind(this, container), cause);
   }
   /**
    * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @param {Page} page
+   * @param {string} cause
    * @override
    */
-  seekPrev(cache, container, page) {
-    this.seekInternal_(cache, container, page, this.makePrevFace_.bind(this, container));
+  seekPrev(cache, container, page, cause) {
+    this.seekInternal_(cache, container, page, this.makePrevFace_.bind(this, container), cause);
   }
 
   /**
@@ -1586,7 +1591,7 @@ export class HorizontalAxis extends Axis {
     var container = viewer.container;
     this.tracker_.event('Viewer', 'SeekByKeyboard', 'Forward', this.current_.pages[0].idx);
     if (this.current_.nextPage) {
-      this.seek(cache, container, this.current_.nextPage);
+      this.seek(cache, container, this.current_.nextPage, 'keyboard');
       return true;
     } else {
       return false;
@@ -1602,7 +1607,7 @@ export class HorizontalAxis extends Axis {
     var container = viewer.container;
     this.tracker_.event('Viewer', 'SeekByKeyboard', 'Backward', this.current_.pages[0].idx);
     if (this.current_.prev) {
-      this.seekPrev(cache, container, this.current_.prevPage);
+      this.seekPrev(cache, container, this.current_.prevPage, 'keyboard');
       return true;
     } else {
       return false;
@@ -1651,18 +1656,18 @@ export class HorizontalAxis extends Axis {
     var tracker = viewer.tracker;
     if (isTap) {
       if (lastRelX < transitionArea && this.current_.nextPage) {
-        this.seek(cache, container, this.current_.nextPage);
+        this.seek(cache, container, this.current_.nextPage, device);
         viewer.render();
         tracker.event('Viewer', 'SeekBy' + device, 'Forward', this.current_.pages[0].idx);
         return;
       } else if (lastRelX > (1 - transitionArea) && this.current_.prevPage) {
-        this.seekPrev(cache, container, this.current_.prevPage);
+        this.seekPrev(cache, container, this.current_.prevPage, device);
         viewer.render();
         tracker.event('Viewer', 'SeekBy' + device, 'Backward', this.current_.pages[0].idx);
         return;
       } else {
         if (viewer.seekbar) {
-          viewer.seekbar.activate(viewer.seekbar.activePeriod);
+          viewer.seekbar.activate(viewer.seekbar.activePeriod, device);
           tracker.event('Viewer', 'ActivateSeekbar', device, lastRelX);
         }
         // do not return, since the page might be moved by fingers/mouse pointers.
@@ -1766,9 +1771,10 @@ export class VerticalAxis extends Axis {
    * @param {ImageCache} cache
    * @param {HTMLDivElement} container
    * @param {Page} page
+   * @param {string} cause
    * @override
    */
-  seek(cache, container, page) {
+  seek(cache, container, page, cause) {
   }
   /**
    * @param {ImageCache} cache
@@ -1783,24 +1789,12 @@ export class VerticalAxis extends Axis {
    * @override
    */
   onDown(viewer) {
-    if (this.current_.next) {
-      this.seek(this.current_.next);
-      return true;
-    } else {
-      return false;
-    }
   }
   /**
    * @param {Viewer} viewer
    * @return {boolean} reload
    */
   onUp(viewer) {
-    if (this.current_.prev) {
-      this.seek(this.current_.prev);
-      return true;
-    } else {
-      return false;
-    }
   }
 }
 
