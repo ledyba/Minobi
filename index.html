@@ -231,7 +231,10 @@
           1 /* step */,
           -1 /* orientation(L<-R) */);
         viewer.addEventListener('pageenter', function(pages, cause){
-          console.log('pageenter', cause, pages)
+          console.log('pageenter', cause, pages);
+        });
+        viewer.addEventListener('finish', function(cause){
+          console.log('finish', cause);
         });
 
         // Initialize

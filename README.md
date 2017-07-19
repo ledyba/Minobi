@@ -55,9 +55,9 @@ Please see [example](https://github.com/ledyba/Minobi/blob/master/index.html). I
 
 ### Viewer
 
-#### pageenter
+#### pageenter / finish
 
-This event will be fired when a user enter pages. The 'pages' argument is a list of page numbers, and it may consist of more than one page numbers, since Minobi displays more than one pages in the screen if applicable.
+This event will be fired when a user enters pages or finishes reading book. The 'pages' argument is a list of page numbers, and it may consist of more than one page numbers, since Minobi displays more than one pages in the screen if applicable.
 
 ```js
 var chapter = {/* page catalog in json */}/
@@ -68,12 +68,22 @@ Minobi.init(document.getElementById("minobi"), chapter, function(viewer) {
        * @param {[number]} pages
        * @param {string} cause
        */
-      var handler = function(pages, cause) {
+      var pageenterHandler = function(pages, cause) {
         // ...
         // cause := 'swipe' | 'touch' | 'mouse' | 'keyboard' | 'init' | 'resize' | 'reload' | '?';
       };
-      viewer.addEventListener('pageenter', handler);
-      viewer.removeEventListener('pageenter', handler);
+      viewer.addEventListener('pageenter', pageenterHandler);
+      viewer.removeEventListener('pageenter', pageenterHandler);
+
+      /**
+       * @param {string} cause
+       */
+      var finishHandler = function(pages, cause) {
+        // ...
+        // cause is the same as pageenter
+      };
+      viewer.addEventListener('finish', finishHandler);
+      viewer.removeEventListener('finish', finishHandler);
     });
 ```
 

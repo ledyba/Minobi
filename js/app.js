@@ -494,7 +494,6 @@ var HTMLPage = exports.HTMLPage = function (_Page2) {
       this.scale_ = scale;
       this.x_ = dx;
       this.y_ = dy;
-      console.log(dx, dy);
       e.style.transform = '';
       e.style.top = dy * scale + 'px';
       e.style.left = dx * scale + 'px';
@@ -1034,6 +1033,7 @@ var Viewer = exports.Viewer = function () {
     this.listeners_['pageenter'] = [];
     this.listeners_['ready'] = [];
     this.listeners_['resize'] = [];
+    this.listeners_['finish'] = [];
 
     /**
      * @type {number} transitionAreaRatioForTouch
@@ -1340,8 +1340,15 @@ var Viewer = exports.Viewer = function () {
           this.dispatchEvent_('pageenter', pages, cause);
         }
       };
+      /**
+       * @param {string} cause
+       */
+      var onFinish = function onFinish(cause) {
+        this.dispatchEvent_('finish', cause);
+      };
       var axis = new HorizontalAxis(this.tracker, this.chapter);
       axis.addEventListener('pageenter', onPageEnter.bind(this));
+      axis.addEventListener('finish', onFinish.bind(this));
       return axis;
     }
   }, {
@@ -1402,6 +1409,7 @@ var Axis = exports.Axis = function () {
     /** @type {Object.<string, [function()]>} */
     this.listeners_ = {};
     this.listeners_['pageenter'] = [];
+    this.listeners_['finish'] = [];
   }
   /**
    * @param {ImageCache} cache
@@ -1834,6 +1842,18 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       this.dispatchEvent_('pageenter', this.currentPageNumbers, cause);
     }
     /**
+     * @param {string} cause
+     */
+
+  }, {
+    key: 'dispatchFinishEvent',
+    value: function dispatchFinishEvent(cause) {
+      if (!cause) {
+        throw new Error("Please set the cause of finish event.");
+      }
+      this.dispatchEvent_('finish', cause);
+    }
+    /**
      * @returns {[number]}
      */
 
@@ -1947,7 +1967,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
         this.current_.next.transform(1, (this.pos_ - 1) * container.clientWidth_, 0);
         this.current_.next.render(cache, container);
         this.current_.next.opacity = 1;
-      }
+      } else {}
       if (this.current_.prev) {
         this.current_.prev.opacity = 0;
         this.current_.prev.render(cache, container);
@@ -1997,6 +2017,7 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
         this.seek(cache, container, this.current_.nextPage, 'keyboard');
         return true;
       } else {
+        this.dispatchFinishEvent('keyboard');
         return false;
       }
     }
@@ -2034,6 +2055,10 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       var container = viewer.container;
       var deltaX = dx / container.clientWidth_;
       this.pos_ += deltaX;
+      if (!this.current_.next && this.pos_ - deltaX < 0.005 && this.pos_ >= 0.005) {
+        this.dispatchFinishEvent('swipe');
+      }
+
       this.render(cache, container);
       return true;
     }
@@ -2070,10 +2095,14 @@ var HorizontalAxis = exports.HorizontalAxis = function (_Axis) {
       var container = viewer.container;
       var tracker = viewer.tracker;
       if (isTap) {
-        if (lastRelX < transitionArea && this.current_.nextPage) {
-          this.seek(cache, container, this.current_.nextPage, device);
-          viewer.render();
-          tracker.event('Viewer', 'SeekBy' + device, 'Forward', this.current_.pages[0].idx);
+        if (lastRelX < transitionArea) {
+          if (this.current_.nextPage) {
+            this.seek(cache, container, this.current_.nextPage, device);
+            viewer.render();
+            tracker.event('Viewer', 'SeekBy' + device, 'Forward', this.current_.pages[0].idx);
+          } else {
+            this.dispatchFinishEvent(device);
+          }
           return;
         } else if (lastRelX > 1 - transitionArea && this.current_.prevPage) {
           this.seekPrev(cache, container, this.current_.prevPage, device);
@@ -2609,6 +2638,7 @@ var SeekBar = exports.SeekBar = function () {
   }, {
     key: 'seek',
     value: function seek(v, delay, reload, cause) {
+      cause = cause || '?';
       this.seek_(this.toSeekableValue_(v), delay, reload, cause);
     }
     /**
