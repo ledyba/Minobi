@@ -149,7 +149,7 @@ seekbar.activePeriod = 1000;
 
 # License
 
-AGPLv3 or later.
+MIT
 
 # What 'Minobi' means?
 
